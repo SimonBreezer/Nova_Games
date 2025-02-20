@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ballerina Dressing Game</title>
     <style>
         body {
@@ -86,7 +88,41 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // Ballerina parts and defaults
+        // Define ballet positions with key points for arms and legs
+        const positions = {
+            first: {
+                leftArm: { shoulder: [180, 140], elbow: [160, 160], hand: [200, 180] },
+                rightArm: { shoulder: [220, 140], elbow: [240, 160], hand: [200, 180] },
+                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [190, 440] },
+                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [210, 440] }
+            },
+            second: {
+                leftArm: { shoulder: [180, 140], elbow: [120, 160], hand: [100, 160] },
+                rightArm: { shoulder: [220, 140], elbow: [280, 160], hand: [300, 160] },
+                leftLeg: { hip: [180, 240], knee: [160, 340], foot: [160, 440] },
+                rightLeg: { hip: [220, 240], knee: [240, 340], foot: [240, 440] }
+            },
+            third: {
+                leftArm: { shoulder: [180, 140], elbow: [160, 180], hand: [200, 180] },
+                rightArm: { shoulder: [220, 140], elbow: [280, 160], hand: [300, 160] },
+                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [200, 440] },
+                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [190, 440] }
+            },
+            fourth: {
+                leftArm: { shoulder: [180, 140], elbow: [160, 180], hand: [200, 180] },
+                rightArm: { shoulder: [220, 140], elbow: [240, 160], hand: [260, 160] },
+                leftLeg: { hip: [180, 240], knee: [160, 340], foot: [160, 440] },
+                rightLeg: { hip: [220, 240], knee: [240, 340], foot: [240, 440] }
+            },
+            fifth: {
+                leftArm: { shoulder: [180, 140], elbow: [160, 120], hand: [180, 100] },
+                rightArm: { shoulder: [220, 140], elbow: [240, 120], hand: [220, 100] },
+                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [190, 440] },
+                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [210, 440] }
+            }
+        };
+
+        // Ballerina object with default values
         let ballerina = {
             position: "first",
             hair: { style: "bun", color: "#8b4513" },
@@ -111,101 +147,259 @@
             });
         });
 
-        function drawBallerina() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function drawBackground() {
+            // Floor
+            ctx.fillStyle = "#d2b48c";
+            ctx.fillRect(0, 500, 400, 100);
+            // Floorboards
+            ctx.strokeStyle = "#8b4513";
+            for (let i = 0; i < 400; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 500);
+                ctx.lineTo(i, 600);
+                ctx.stroke();
+            }
+            // Curtains
+            ctx.fillStyle = "red";
+            ctx.fillRect(0, 0, 50, 600);
+            ctx.fillRect(350, 0, 50, 600);
+            // Curtain folds
+            ctx.strokeStyle = "darkred";
+            for (let i = 10; i < 50; i += 10) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 600);
+                ctx.stroke();
+            }
+            for (let i = 360; i < 400; i += 10) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 600);
+                ctx.stroke();
+            }
+            // Spotlight
+            ctx.fillStyle = "yellow";
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.moveTo(200, 0);
+            ctx.lineTo(100, 600);
+            ctx.lineTo(300, 600);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
 
-            // Head
-            ctx.fillStyle = "#f5d5b5"; // Skin tone
+        function drawHead() {
+            // Face
+            ctx.fillStyle = "#f5d5b5";
             ctx.beginPath();
             ctx.arc(200, 100, 40, 0, Math.PI * 2);
             ctx.fill();
+            // Eyes
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(185, 90, 5, 0, Math.PI * 2);
+            ctx.arc(215, 90, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Nose
+            ctx.beginPath();
+            ctx.moveTo(200, 95);
+            ctx.lineTo(198, 105);
+            ctx.lineTo(202, 105);
+            ctx.fill();
+            // Mouth
+            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.arc(200, 110, 10, 0, Math.PI);
+            ctx.stroke();
+            // Blush
+            ctx.fillStyle = "pink";
+            ctx.beginPath();
+            ctx.arc(175, 100, 5, 0, Math.PI * 2);
+            ctx.arc(225, 100, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
-            // Hair
+        function drawHair() {
             ctx.fillStyle = ballerina.hair.color;
             if (ballerina.hair.style === "bun") {
+                // Bun
                 ctx.beginPath();
                 ctx.arc(200, 70, 20, 0, Math.PI * 2);
                 ctx.fill();
+                // Hair texture lines
+                ctx.strokeStyle = "black";
+                ctx.beginPath();
+                for (let i = 0; i < 360; i += 30) {
+                    let rad = (i * Math.PI) / 180;
+                    ctx.moveTo(200 + 20 * Math.cos(rad), 70 + 20 * Math.sin(rad));
+                    ctx.lineTo(200 + 25 * Math.cos(rad), 70 + 25 * Math.sin(rad));
+                }
+                ctx.stroke();
             } else if (ballerina.hair.style === "ponytail") {
-                ctx.fillRect(180, 100, 40, 100);
+                // Ponytail
+                ctx.fillRect(195, 90, 10, 20);
+                // Flowing tail
+                ctx.beginPath();
+                ctx.moveTo(195, 110);
+                ctx.quadraticCurveTo(185, 130, 190, 150);
+                ctx.quadraticCurveTo(195, 170, 200, 190);
+                ctx.quadraticCurveTo(205, 170, 210, 150);
+                ctx.quadraticCurveTo(215, 130, 205, 110);
+                ctx.fill();
             } else if (ballerina.hair.style === "braid") {
-                ctx.fillRect(190, 100, 20, 150);
+                // Braid
+                let x = 200;
+                let y = 100;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(x - 10, y);
+                    ctx.lineTo(x + 10, y + 20);
+                    ctx.lineTo(x - 10, y + 40);
+                    ctx.lineTo(x + 10, y + 60);
+                    ctx.fill();
+                    y += 40;
+                }
             }
+        }
 
-            // Body
-            ctx.fillStyle = ballerina.top.color;
-            if (ballerina.top.style === "leotard") {
-                ctx.fillRect(170, 140, 60, 100);
-            } else if (ballerina.top.style === "tank") {
-                ctx.fillRect(170, 140, 60, 80);
-            } else if (ballerina.top.style === "crop") {
-                ctx.fillRect(170, 140, 60, 50);
+        function drawLegs() {
+            const pos = positions[ballerina.position];
+            ctx.strokeStyle = "#f5d5b5";
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(pos.leftLeg.hip[0], pos.leftLeg.hip[1]);
+            ctx.quadraticCurveTo(pos.leftLeg.knee[0], pos.leftLeg.knee[1], pos.leftLeg.foot[0], pos.leftLeg.foot[1]);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.rightLeg.hip[0], pos.rightLeg.hip[1]);
+            ctx.quadraticCurveTo(pos.rightLeg.knee[0], pos.rightLeg.knee[1], pos.rightLeg.foot[0], pos.rightLeg.foot[1]);
+            ctx.stroke();
+        }
+
+        function drawShoes() {
+            const pos = positions[ballerina.position];
+            ctx.fillStyle = ballerina.shoes.color;
+            if (ballerina.shoes.style === "pointe") {
+                // Pointe shoes
+                ctx.fillRect(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1] - 10, 20, 20);
+                ctx.fillRect(pos.rightLeg.foot[0] - 10, pos.rightLeg.foot[1] - 10, 20, 20);
+                // Ribbons
+                ctx.strokeStyle = "pink";
+                ctx.beginPath();
+                ctx.moveTo(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1]);
+                ctx.lineTo(pos.leftLeg.foot[0] - 20, pos.leftLeg.foot[1] - 40);
+                ctx.moveTo(pos.rightLeg.foot[0] + 10, pos.rightLeg.foot[1]);
+                ctx.lineTo(pos.rightLeg.foot[0] + 20, pos.rightLeg.foot[1] - 40);
+                ctx.stroke();
+            } else if (ballerina.shoes.style === "flat") {
+                // Ballet flats
+                ctx.fillRect(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1] - 5, 20, 15);
+                ctx.fillRect(pos.rightLeg.foot[0] - 10, pos.rightLeg.foot[1] - 5, 20, 15);
+            } else if (ballerina.shoes.style === "sneakers") {
+                // Sneakers
+                ctx.fillRect(pos.leftLeg.foot[0] - 15, pos.leftLeg.foot[1] - 10, 30, 20);
+                ctx.fillRect(pos.rightLeg.foot[0] - 15, pos.rightLeg.foot[1] - 10, 30, 20);
             }
+        }
 
-            // Bottom
+        function drawBottom() {
+            const pos = positions[ballerina.position];
             ctx.fillStyle = ballerina.bottom.color;
             if (ballerina.bottom.style === "tutu") {
-                ctx.beginPath();
-                ctx.arc(200, 240, 60, 0, Math.PI);
-                ctx.fill();
+                // Tutu
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.arc(200, 240 + i * 10, 60 - i * 10, 0, Math.PI);
+                    ctx.fill();
+                }
             } else if (ballerina.bottom.style === "skirt") {
-                ctx.fillRect(170, 240, 60, 150);
+                // Long skirt
+                ctx.beginPath();
+                ctx.moveTo(170, 240);
+                ctx.lineTo(230, 240);
+                ctx.lineTo(250, 400);
+                ctx.lineTo(150, 400);
+                ctx.fill();
             } else if (ballerina.bottom.style === "leggings") {
-                ctx.fillRect(170, 240, 30, 200);
-                ctx.fillRect(200, 240, 30, 200);
+                // Leggings over legs
+                ctx.strokeStyle = ballerina.bottom.color;
+                ctx.lineWidth = 18;
+                ctx.beginPath();
+                ctx.moveTo(pos.leftLeg.hip[0], pos.leftLeg.hip[1]);
+                ctx.quadraticCurveTo(pos.leftLeg.knee[0], pos.leftLeg.knee[1], pos.leftLeg.foot[0], pos.leftLeg.foot[1]);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pos.rightLeg.hip[0], pos.rightLeg.hip[1]);
+                ctx.quadraticCurveTo(pos.rightLeg.knee[0], pos.rightLeg.knee[1], pos.rightLeg.foot[0], pos.rightLeg.foot[1]);
+                ctx.stroke();
             }
+        }
 
-            // Arms (simple lines, adjust with position)
+        function drawTorso() {
+            // Torso in skin color
+            ctx.fillStyle = "#f5d5b5";
+            ctx.beginPath();
+            ctx.moveTo(180, 140);
+            ctx.lineTo(220, 140);
+            ctx.lineTo(210, 240);
+            ctx.lineTo(190, 240);
+            ctx.fill();
+        }
+
+        function drawTop() {
+            ctx.fillStyle = ballerina.top.color;
+            if (ballerina.top.style === "leotard") {
+                // Leotard
+                ctx.beginPath();
+                ctx.moveTo(182, 142);
+                ctx.lineTo(218, 142);
+                ctx.lineTo(208, 238);
+                ctx.lineTo(192, 238);
+                ctx.fill();
+            } else if (ballerina.top.style === "tank") {
+                // Tank top
+                ctx.fillRect(182, 142, 36, 96);
+                // Straps
+                ctx.fillStyle = "black";
+                ctx.fillRect(182, 142, 5, 20);
+                ctx.fillRect(213, 142, 5, 20);
+            } else if (ballerina.top.style === "crop") {
+                // Crop top
+                ctx.fillRect(182, 142, 36, 50);
+                // V-neck
+                ctx.beginPath();
+                ctx.moveTo(182, 142);
+                ctx.lineTo(200, 162);
+                ctx.lineTo(218, 142);
+                ctx.fill();
+            }
+        }
+
+        function drawArms() {
+            const pos = positions[ballerina.position];
             ctx.strokeStyle = "#f5d5b5";
             ctx.lineWidth = 10;
             ctx.beginPath();
-            if (ballerina.position === "first" || ballerina.position === "fifth") {
-                ctx.arc(200, 140, 60, Math.PI * 0.25, Math.PI * 0.75);
-            } else if (ballerina.position === "second") {
-                ctx.moveTo(140, 160);
-                ctx.lineTo(260, 160);
-            } else if (ballerina.position === "third") {
-                ctx.moveTo(200, 140);
-                ctx.lineTo(260, 200);
-            } else if (ballerina.position === "fourth") {
-                ctx.moveTo(140, 160);
-                ctx.lineTo(200, 140);
-            }
+            ctx.moveTo(pos.leftArm.shoulder[0], pos.leftArm.shoulder[1]);
+            ctx.quadraticCurveTo(pos.leftArm.elbow[0], pos.leftArm.elbow[1], pos.leftArm.hand[0], pos.leftArm.hand[1]);
             ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.rightArm.shoulder[0], pos.rightArm.shoulder[1]);
+            ctx.quadraticCurveTo(pos.rightArm.elbow[0], pos.rightArm.elbow[1], pos.rightArm.hand[0], pos.rightArm.hand[1]);
+            ctx.stroke();
+        }
 
-            // Legs (adjust with position)
-            ctx.fillStyle = ballerina.shoes.color;
-            if (ballerina.position === "first") {
-                ctx.fillRect(185, 340, 30, 100); // Straight down
-                ctx.fillRect(185, 440, 30, 20); // Shoes
-            } else if (ballerina.position === "second") {
-                ctx.fillRect(160, 340, 30, 100); // Left leg
-                ctx.fillRect(210, 340, 30, 100); // Right leg
-                ctx.fillRect(160, 440, 30, 20); // Shoes
-                ctx.fillRect(210, 440, 30, 20);
-            } else if (ballerina.position === "third") {
-                ctx.fillRect(185, 340, 30, 100); // Back leg
-                ctx.fillRect(195, 340, 20, 80); // Front leg crossed
-                ctx.fillRect(195, 420, 20, 20);
-            } else if (ballerina.position === "fourth") {
-                ctx.fillRect(170, 340, 30, 100); // Back leg
-                ctx.fillRect(200, 340, 30, 80); // Front leg forward
-                ctx.fillRect(200, 420, 30, 20);
-            } else if (ballerina.position === "fifth") {
-                ctx.fillRect(180, 340, 30, 100); // Tight crossed legs
-                ctx.fillRect(190, 340, 20, 100);
-                ctx.fillRect(185, 440, 30, 20);
-            }
-
-            // Shoes detail
-            if (ballerina.shoes.style === "pointe") {
-                ctx.fillStyle = ballerina.shoes.color;
-                ctx.fillRect(180, 435, 40, 10); // Pointe tip
-            } else if (ballerina.shoes.style === "flat") {
-                ctx.fillRect(175, 440, 50, 15); // Flat shape
-            } else if (ballerina.shoes.style === "sneakers") {
-                ctx.fillRect(170, 435, 60, 20); // Chunky sneakers
-            }
+        function drawBallerina() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawLegs();
+            drawShoes();
+            drawBottom();
+            drawTorso();
+            drawTop();
+            drawArms();
+            drawHead();
+            drawHair();
         }
 
         // Initial draw
