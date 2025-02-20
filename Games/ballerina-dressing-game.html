@@ -17,9 +17,8 @@
             gap: 20px;
             margin-top: 20px;
         }
-        #canvas {
+        #game {
             border: 2px solid #ff69b4;
-            background: #fff;
         }
         #controls {
             width: 300px;
@@ -35,11 +34,12 @@
             color: #ff1493;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </head>
 <body>
     <h1>Ballerina Dressing Game</h1>
     <div id="gameContainer">
-        <canvas id="canvas" width="400" height="600"></canvas>
+        <div id="game"></div>
         <div id="controls">
             <label>Position:</label><br>
             <select id="position">
@@ -85,325 +85,190 @@
     </div>
 
     <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-
-        // Define ballet positions with key points for arms and legs
-        const positions = {
-            first: {
-                leftArm: { shoulder: [180, 140], elbow: [160, 160], hand: [200, 180] },
-                rightArm: { shoulder: [220, 140], elbow: [240, 160], hand: [200, 180] },
-                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [190, 440] },
-                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [210, 440] }
+        const config = {
+            type: Phaser.AUTO,
+            width: 400,
+            height: 600,
+            parent: 'game',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
             },
-            second: {
-                leftArm: { shoulder: [180, 140], elbow: [120, 160], hand: [100, 160] },
-                rightArm: { shoulder: [220, 140], elbow: [280, 160], hand: [300, 160] },
-                leftLeg: { hip: [180, 240], knee: [160, 340], foot: [160, 440] },
-                rightLeg: { hip: [220, 240], knee: [240, 340], foot: [240, 440] }
-            },
-            third: {
-                leftArm: { shoulder: [180, 140], elbow: [160, 180], hand: [200, 180] },
-                rightArm: { shoulder: [220, 140], elbow: [280, 160], hand: [300, 160] },
-                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [200, 440] },
-                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [190, 440] }
-            },
-            fourth: {
-                leftArm: { shoulder: [180, 140], elbow: [160, 180], hand: [200, 180] },
-                rightArm: { shoulder: [220, 140], elbow: [240, 160], hand: [260, 160] },
-                leftLeg: { hip: [180, 240], knee: [160, 340], foot: [160, 440] },
-                rightLeg: { hip: [220, 240], knee: [240, 340], foot: [240, 440] }
-            },
-            fifth: {
-                leftArm: { shoulder: [180, 140], elbow: [160, 120], hand: [180, 100] },
-                rightArm: { shoulder: [220, 140], elbow: [240, 120], hand: [220, 100] },
-                leftLeg: { hip: [190, 240], knee: [190, 340], foot: [190, 440] },
-                rightLeg: { hip: [210, 240], knee: [210, 340], foot: [210, 440] }
-            }
+            backgroundColor: '#f9e6ff'
         };
 
-        // Ballerina object with default values
-        let ballerina = {
-            position: "first",
-            hair: { style: "bun", color: "#8b4513" },
-            top: { style: "leotard", color: "#ff69b4" },
-            bottom: { style: "tutu", color: "#ffb6c1" },
-            shoes: { style: "pointe", color: "#ff1493" }
-        };
+        const game = new Phaser.Game(config);
 
-        // Update ballerina when controls change
-        document.querySelectorAll("select, input").forEach(element => {
-            element.addEventListener("change", () => {
-                ballerina.position = document.getElementById("position").value;
-                ballerina.hair.style = document.getElementById("hairStyle").value;
-                ballerina.hair.color = document.getElementById("hairColor").value;
-                ballerina.top.style = document.getElementById("topStyle").value;
-                ballerina.top.color = document.getElementById("topColor").value;
-                ballerina.bottom.style = document.getElementById("bottomStyle").value;
-                ballerina.bottom.color = document.getElementById("bottomColor").value;
-                ballerina.shoes.style = document.getElementById("shoeStyle").value;
-                ballerina.shoes.color = document.getElementById("shoeColor").value;
-                drawBallerina();
-            });
-        });
+        let ballerina;
 
-        function drawBackground() {
-            // Floor
-            ctx.fillStyle = "#d2b48c";
-            ctx.fillRect(0, 500, 400, 100);
-            // Floorboards
-            ctx.strokeStyle = "#8b4513";
-            for (let i = 0; i < 400; i += 20) {
-                ctx.beginPath();
-                ctx.moveTo(i, 500);
-                ctx.lineTo(i, 600);
-                ctx.stroke();
-            }
-            // Curtains
-            ctx.fillStyle = "red";
-            ctx.fillRect(0, 0, 50, 600);
-            ctx.fillRect(350, 0, 50, 600);
-            // Curtain folds
-            ctx.strokeStyle = "darkred";
-            for (let i = 10; i < 50; i += 10) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, 600);
-                ctx.stroke();
-            }
-            for (let i = 360; i < 400; i += 10) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, 600);
-                ctx.stroke();
-            }
-            // Spotlight
-            ctx.fillStyle = "yellow";
-            ctx.globalAlpha = 0.3;
-            ctx.beginPath();
-            ctx.moveTo(200, 0);
-            ctx.lineTo(100, 600);
-            ctx.lineTo(300, 600);
-            ctx.fill();
-            ctx.globalAlpha = 1;
+        function preload() {
+            // Preload any assets if needed (e.g., sprites)
+        }
+
+        function create() {
+            // Create the ballerina group
+            ballerina = this.add.group();
+
+            // Background (simple gradient)
+            const graphics = this.add.graphics();
+            graphics.fillGradientStyle(0xf9e6ff, 0xf9e6ff, 0xffffff, 0xffffff, 1);
+            graphics.fillRect(0, 0, 400, 600);
+
+            // Initial draw
+            drawBallerina();
+        }
+
+        function update() {
+            // Update if needed
+        }
+
+        function drawBallerina() {
+            ballerina.clear(true, true);
+
+            const position = document.getElementById("position").value;
+            const hairStyle = document.getElementById("hairStyle").value;
+            const hairColor = document.getElementById("hairColor").value;
+            const topStyle = document.getElementById("topStyle").value;
+            const topColor = document.getElementById("topColor").value;
+            const bottomStyle = document.getElementById("bottomStyle").value;
+            const bottomColor = document.getElementById("bottomColor").value;
+            const shoeStyle = document.getElementById("shoeStyle").value;
+            const shoeColor = document.getElementById("shoeColor").value;
+
+            // Draw hair behind the face
+            drawHair(hairStyle, hairColor);
+
+            // Draw body parts in order
+            drawLegs(position);
+            drawBottom(bottomStyle, bottomColor);
+            drawTorso();
+            drawTop(topStyle, topColor);
+            drawArms(position);
+            drawHead();
+            drawShoes(shoeStyle, shoeColor);
         }
 
         function drawHead() {
-            // Face
-            ctx.fillStyle = "#f5d5b5";
-            ctx.beginPath();
-            ctx.arc(200, 100, 40, 0, Math.PI * 2);
-            ctx.fill();
+            const head = game.scene.scenes[0].add.circle(200, 100, 40, 0xf5d5b5);
+            ballerina.add(head);
+
             // Eyes
-            ctx.fillStyle = "black";
-            ctx.beginPath();
-            ctx.arc(185, 90, 5, 0, Math.PI * 2);
-            ctx.arc(215, 90, 5, 0, Math.PI * 2);
-            ctx.fill();
+            const leftEye = game.scene.scenes[0].add.circle(185, 90, 5, 0x000000);
+            const rightEye = game.scene.scenes[0].add.circle(215, 90, 5, 0x000000);
+            ballerina.add(leftEye);
+            ballerina.add(rightEye);
+
             // Nose
-            ctx.beginPath();
-            ctx.moveTo(200, 95);
-            ctx.lineTo(198, 105);
-            ctx.lineTo(202, 105);
-            ctx.fill();
+            const nose = game.scene.scenes[0].add.triangle(200, 100, 198, 105, 202, 105, 200, 95, 0x000000);
+            ballerina.add(nose);
+
             // Mouth
-            ctx.strokeStyle = "red";
-            ctx.beginPath();
-            ctx.arc(200, 110, 10, 0, Math.PI);
-            ctx.stroke();
+            const mouth = game.scene.scenes[0].add.arc(200, 110, 10, 0, 180, false, 0xff0000);
+            ballerina.add(mouth);
+
             // Blush
-            ctx.fillStyle = "pink";
-            ctx.beginPath();
-            ctx.arc(175, 100, 5, 0, Math.PI * 2);
-            ctx.arc(225, 100, 5, 0, Math.PI * 2);
-            ctx.fill();
+            const leftBlush = game.scene.scenes[0].add.circle(175, 100, 5, 0xffc0cb);
+            const rightBlush = game.scene.scenes[0].add.circle(225, 100, 5, 0xffc0cb);
+            ballerina.add(leftBlush);
+            ballerina.add(rightBlush);
         }
 
-        function drawHair() {
-            ctx.fillStyle = ballerina.hair.color;
-            if (ballerina.hair.style === "bun") {
-                // Bun
-                ctx.beginPath();
-                ctx.arc(200, 70, 20, 0, Math.PI * 2);
-                ctx.fill();
-                // Hair texture lines
-                ctx.strokeStyle = "black";
-                ctx.beginPath();
-                for (let i = 0; i < 360; i += 30) {
-                    let rad = (i * Math.PI) / 180;
-                    ctx.moveTo(200 + 20 * Math.cos(rad), 70 + 20 * Math.sin(rad));
-                    ctx.lineTo(200 + 25 * Math.cos(rad), 70 + 25 * Math.sin(rad));
-                }
-                ctx.stroke();
-            } else if (ballerina.hair.style === "ponytail") {
-                // Ponytail
-                ctx.fillRect(195, 90, 10, 20);
-                // Flowing tail
-                ctx.beginPath();
-                ctx.moveTo(195, 110);
-                ctx.quadraticCurveTo(185, 130, 190, 150);
-                ctx.quadraticCurveTo(195, 170, 200, 190);
-                ctx.quadraticCurveTo(205, 170, 210, 150);
-                ctx.quadraticCurveTo(215, 130, 205, 110);
-                ctx.fill();
-            } else if (ballerina.hair.style === "braid") {
-                // Braid
-                let x = 200;
-                let y = 100;
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(x - 10, y);
-                    ctx.lineTo(x + 10, y + 20);
-                    ctx.lineTo(x - 10, y + 40);
-                    ctx.lineTo(x + 10, y + 60);
-                    ctx.fill();
-                    y += 40;
-                }
-            }
-        }
+        function drawHair(style, color) {
+            const hairColor = Phaser.Display.Color.HexStringToColor(color).color;
 
-        function drawLegs() {
-            const pos = positions[ballerina.position];
-            ctx.strokeStyle = "#f5d5b5";
-            ctx.lineWidth = 20;
-            ctx.beginPath();
-            ctx.moveTo(pos.leftLeg.hip[0], pos.leftLeg.hip[1]);
-            ctx.quadraticCurveTo(pos.leftLeg.knee[0], pos.leftLeg.knee[1], pos.leftLeg.foot[0], pos.leftLeg.foot[1]);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(pos.rightLeg.hip[0], pos.rightLeg.hip[1]);
-            ctx.quadraticCurveTo(pos.rightLeg.knee[0], pos.rightLeg.knee[1], pos.rightLeg.foot[0], pos.rightLeg.foot[1]);
-            ctx.stroke();
-        }
-
-        function drawShoes() {
-            const pos = positions[ballerina.position];
-            ctx.fillStyle = ballerina.shoes.color;
-            if (ballerina.shoes.style === "pointe") {
-                // Pointe shoes
-                ctx.fillRect(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1] - 10, 20, 20);
-                ctx.fillRect(pos.rightLeg.foot[0] - 10, pos.rightLeg.foot[1] - 10, 20, 20);
-                // Ribbons
-                ctx.strokeStyle = "pink";
-                ctx.beginPath();
-                ctx.moveTo(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1]);
-                ctx.lineTo(pos.leftLeg.foot[0] - 20, pos.leftLeg.foot[1] - 40);
-                ctx.moveTo(pos.rightLeg.foot[0] + 10, pos.rightLeg.foot[1]);
-                ctx.lineTo(pos.rightLeg.foot[0] + 20, pos.rightLeg.foot[1] - 40);
-                ctx.stroke();
-            } else if (ballerina.shoes.style === "flat") {
-                // Ballet flats
-                ctx.fillRect(pos.leftLeg.foot[0] - 10, pos.leftLeg.foot[1] - 5, 20, 15);
-                ctx.fillRect(pos.rightLeg.foot[0] - 10, pos.rightLeg.foot[1] - 5, 20, 15);
-            } else if (ballerina.shoes.style === "sneakers") {
-                // Sneakers
-                ctx.fillRect(pos.leftLeg.foot[0] - 15, pos.leftLeg.foot[1] - 10, 30, 20);
-                ctx.fillRect(pos.rightLeg.foot[0] - 15, pos.rightLeg.foot[1] - 10, 30, 20);
-            }
-        }
-
-        function drawBottom() {
-            const pos = positions[ballerina.position];
-            ctx.fillStyle = ballerina.bottom.color;
-            if (ballerina.bottom.style === "tutu") {
-                // Tutu
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath();
-                    ctx.arc(200, 240 + i * 10, 60 - i * 10, 0, Math.PI);
-                    ctx.fill();
-                }
-            } else if (ballerina.bottom.style === "skirt") {
-                // Long skirt
-                ctx.beginPath();
-                ctx.moveTo(170, 240);
-                ctx.lineTo(230, 240);
-                ctx.lineTo(250, 400);
-                ctx.lineTo(150, 400);
-                ctx.fill();
-            } else if (ballerina.bottom.style === "leggings") {
-                // Leggings over legs
-                ctx.strokeStyle = ballerina.bottom.color;
-                ctx.lineWidth = 18;
-                ctx.beginPath();
-                ctx.moveTo(pos.leftLeg.hip[0], pos.leftLeg.hip[1]);
-                ctx.quadraticCurveTo(pos.leftLeg.knee[0], pos.leftLeg.knee[1], pos.leftLeg.foot[0], pos.leftLeg.foot[1]);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(pos.rightLeg.hip[0], pos.rightLeg.hip[1]);
-                ctx.quadraticCurveTo(pos.rightLeg.knee[0], pos.rightLeg.knee[1], pos.rightLeg.foot[0], pos.rightLeg.foot[1]);
-                ctx.stroke();
+            if (style === "bun") {
+                const bun = game.scene.scenes[0].add.circle(200, 70, 20, hairColor);
+                ballerina.add(bun);
+            } else if (style === "ponytail") {
+                const ponytail = game.scene.scenes[0].add.rectangle(200, 150, 20, 100, hairColor);
+                ballerina.add(ponytail);
+            } else if (style === "braid") {
+                const braid = game.scene.scenes[0].add.rectangle(200, 150, 20, 150, hairColor);
+                ballerina.add(braid);
             }
         }
 
         function drawTorso() {
-            // Torso in skin color
-            ctx.fillStyle = "#f5d5b5";
-            ctx.beginPath();
-            ctx.moveTo(180, 140);
-            ctx.lineTo(220, 140);
-            ctx.lineTo(210, 240);
-            ctx.lineTo(190, 240);
-            ctx.fill();
+            const torso = game.scene.scenes[0].add.rectangle(200, 180, 40, 80, 0xf5d5b5);
+            ballerina.add(torso);
         }
 
-        function drawTop() {
-            ctx.fillStyle = ballerina.top.color;
-            if (ballerina.top.style === "leotard") {
-                // Leotard
-                ctx.beginPath();
-                ctx.moveTo(182, 142);
-                ctx.lineTo(218, 142);
-                ctx.lineTo(208, 238);
-                ctx.lineTo(192, 238);
-                ctx.fill();
-            } else if (ballerina.top.style === "tank") {
-                // Tank top
-                ctx.fillRect(182, 142, 36, 96);
-                // Straps
-                ctx.fillStyle = "black";
-                ctx.fillRect(182, 142, 5, 20);
-                ctx.fillRect(213, 142, 5, 20);
-            } else if (ballerina.top.style === "crop") {
-                // Crop top
-                ctx.fillRect(182, 142, 36, 50);
-                // V-neck
-                ctx.beginPath();
-                ctx.moveTo(182, 142);
-                ctx.lineTo(200, 162);
-                ctx.lineTo(218, 142);
-                ctx.fill();
+        function drawTop(style, color) {
+            const topColor = Phaser.Display.Color.HexStringToColor(color).color;
+
+            if (style === "leotard") {
+                const leotard = game.scene.scenes[0].add.rectangle(200, 180, 40, 80, topColor);
+                ballerina.add(leotard);
+            } else if (style === "tank") {
+                const tank = game.scene.scenes[0].add.rectangle(200, 180, 40, 60, topColor);
+                ballerina.add(tank);
+            } else if (style === "crop") {
+                const crop = game.scene.scenes[0].add.rectangle(200, 160, 40, 40, topColor);
+                ballerina.add(crop);
             }
         }
 
-        function drawArms() {
-            const pos = positions[ballerina.position];
-            ctx.strokeStyle = "#f5d5b5";
-            ctx.lineWidth = 10;
-            ctx.beginPath();
-            ctx.moveTo(pos.leftArm.shoulder[0], pos.leftArm.shoulder[1]);
-            ctx.quadraticCurveTo(pos.leftArm.elbow[0], pos.leftArm.elbow[1], pos.leftArm.hand[0], pos.leftArm.hand[1]);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(pos.rightArm.shoulder[0], pos.rightArm.shoulder[1]);
-            ctx.quadraticCurveTo(pos.rightArm.elbow[0], pos.rightArm.elbow[1], pos.rightArm.hand[0], pos.rightArm.hand[1]);
-            ctx.stroke();
+        function drawBottom(style, color) {
+            const bottomColor = Phaser.Display.Color.HexStringToColor(color).color;
+
+            if (style === "tutu") {
+                const tutu = game.scene.scenes[0].add.circle(200, 240, 60, bottomColor);
+                ballerina.add(tutu);
+            } else if (style === "skirt") {
+                const skirt = game.scene.scenes[0].add.rectangle(200, 300, 80, 120, bottomColor);
+                ballerina.add(skirt);
+            } else if (style === "leggings") {
+                const leftLegging = game.scene.scenes[0].add.rectangle(190, 340, 20, 100, bottomColor);
+                const rightLegging = game.scene.scenes[0].add.rectangle(210, 340, 20, 100, bottomColor);
+                ballerina.add(leftLegging);
+                ballerina.add(rightLegging);
+            }
         }
 
-        function drawBallerina() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawBackground();
-            drawLegs();
-            drawShoes();
-            drawBottom();
-            drawTorso();
-            drawTop();
-            drawArms();
-            drawHead();
-            drawHair();
+        function drawArms(position) {
+            // Simplified arm positions
+            const leftArm = game.scene.scenes[0].add.rectangle(160, 180, 80, 20, 0xf5d5b5);
+            const rightArm = game.scene.scenes[0].add.rectangle(240, 180, 80, 20, 0xf5d5b5);
+            ballerina.add(leftArm);
+            ballerina.add(rightArm);
         }
 
-        // Initial draw
-        drawBallerina();
+        function drawLegs(position) {
+            // Simplified leg positions
+            const leftLeg = game.scene.scenes[0].add.rectangle(190, 340, 20, 100, 0xf5d5b5);
+            const rightLeg = game.scene.scenes[0].add.rectangle(210, 340, 20, 100, 0xf5d5b5);
+            ballerina.add(leftLeg);
+            ballerina.add(rightLeg);
+        }
+
+        function drawShoes(style, color) {
+            const shoeColor = Phaser.Display.Color.HexStringToColor(color).color;
+
+            if (style === "pointe") {
+                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 20, 20, shoeColor);
+                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 20, 20, shoeColor);
+                ballerina.add(leftShoe);
+                ballerina.add(rightShoe);
+            } else if (style === "flat") {
+                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 20, 15, shoeColor);
+                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 20, 15, shoeColor);
+                ballerina.add(leftShoe);
+                ballerina.add(rightShoe);
+            } else if (style === "sneakers") {
+                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 30, 20, shoeColor);
+                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 30, 20, shoeColor);
+                ballerina.add(leftShoe);
+                ballerina.add(rightShoe);
+            }
+        }
+
+        // Update ballerina when controls change
+        document.querySelectorAll("select, input").forEach(element => {
+            element.addEventListener("change", () => {
+                drawBallerina();
+            });
+        });
     </script>
 </body>
 </html>
