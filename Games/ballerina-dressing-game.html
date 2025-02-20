@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ballerina Dressing Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f9e6ff;
+        }
+        #gameContainer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        #canvas {
+            border: 2px solid #ff69b4;
+            background: #fff;
+        }
+        #controls {
+            width: 300px;
+            text-align: left;
+        }
+        select, input {
+            margin: 5px;
+            padding: 5px;
+            width: 90%;
+        }
+        label {
+            font-weight: bold;
+            color: #ff1493;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ballerina Dressing Game</h1>
+    <div id="gameContainer">
+        <canvas id="canvas" width="400" height="600"></canvas>
+        <div id="controls">
+            <label>Position:</label><br>
+            <select id="position">
+                <option value="first">First Position</option>
+                <option value="second">Second Position</option>
+                <option value="third">Third Position</option>
+                <option value="fourth">Fourth Position</option>
+                <option value="fifth">Fifth Position</option>
+            </select><br>
+
+            <label>Hair Style:</label><br>
+            <select id="hairStyle">
+                <option value="bun">Bun</option>
+                <option value="ponytail">Ponytail</option>
+                <option value="braid">Braid</option>
+            </select>
+            <input type="color" id="hairColor" value="#8b4513"><br>
+
+            <label>Top:</label><br>
+            <select id="topStyle">
+                <option value="leotard">Leotard</option>
+                <option value="tank">Tank Top</option>
+                <option value="crop">Crop Top</option>
+            </select>
+            <input type="color" id="topColor" value="#ff69b4"><br>
+
+            <label>Bottom:</label><br>
+            <select id="bottomStyle">
+                <option value="tutu">Tutu</option>
+                <option value="skirt">Long Skirt</option>
+                <option value="leggings">Leggings</option>
+            </select>
+            <input type="color" id="bottomColor" value="#ffb6c1"><br>
+
+            <label>Shoes:</label><br>
+            <select id="shoeStyle">
+                <option value="pointe">Pointe Shoes</option>
+                <option value="flat">Ballet Flats</option>
+                <option value="sneakers">Sneakers</option>
+            </select>
+            <input type="color" id="shoeColor" value="#ff1493"><br>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Ballerina parts and defaults
+        let ballerina = {
+            position: "first",
+            hair: { style: "bun", color: "#8b4513" },
+            top: { style: "leotard", color: "#ff69b4" },
+            bottom: { style: "tutu", color: "#ffb6c1" },
+            shoes: { style: "pointe", color: "#ff1493" }
+        };
+
+        // Update ballerina when controls change
+        document.querySelectorAll("select, input").forEach(element => {
+            element.addEventListener("change", () => {
+                ballerina.position = document.getElementById("position").value;
+                ballerina.hair.style = document.getElementById("hairStyle").value;
+                ballerina.hair.color = document.getElementById("hairColor").value;
+                ballerina.top.style = document.getElementById("topStyle").value;
+                ballerina.top.color = document.getElementById("topColor").value;
+                ballerina.bottom.style = document.getElementById("bottomStyle").value;
+                ballerina.bottom.color = document.getElementById("bottomColor").value;
+                ballerina.shoes.style = document.getElementById("shoeStyle").value;
+                ballerina.shoes.color = document.getElementById("shoeColor").value;
+                drawBallerina();
+            });
+        });
+
+        function drawBallerina() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Head
+            ctx.fillStyle = "#f5d5b5"; // Skin tone
+            ctx.beginPath();
+            ctx.arc(200, 100, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hair
+            ctx.fillStyle = ballerina.hair.color;
+            if (ballerina.hair.style === "bun") {
+                ctx.beginPath();
+                ctx.arc(200, 70, 20, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (ballerina.hair.style === "ponytail") {
+                ctx.fillRect(180, 100, 40, 100);
+            } else if (ballerina.hair.style === "braid") {
+                ctx.fillRect(190, 100, 20, 150);
+            }
+
+            // Body
+            ctx.fillStyle = ballerina.top.color;
+            if (ballerina.top.style === "leotard") {
+                ctx.fillRect(170, 140, 60, 100);
+            } else if (ballerina.top.style === "tank") {
+                ctx.fillRect(170, 140, 60, 80);
+            } else if (ballerina.top.style === "crop") {
+                ctx.fillRect(170, 140, 60, 50);
+            }
+
+            // Bottom
+            ctx.fillStyle = ballerina.bottom.color;
+            if (ballerina.bottom.style === "tutu") {
+                ctx.beginPath();
+                ctx.arc(200, 240, 60, 0, Math.PI);
+                ctx.fill();
+            } else if (ballerina.bottom.style === "skirt") {
+                ctx.fillRect(170, 240, 60, 150);
+            } else if (ballerina.bottom.style === "leggings") {
+                ctx.fillRect(170, 240, 30, 200);
+                ctx.fillRect(200, 240, 30, 200);
+            }
+
+            // Arms (simple lines, adjust with position)
+            ctx.strokeStyle = "#f5d5b5";
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            if (ballerina.position === "first" || ballerina.position === "fifth") {
+                ctx.arc(200, 140, 60, Math.PI * 0.25, Math.PI * 0.75);
+            } else if (ballerina.position === "second") {
+                ctx.moveTo(140, 160);
+                ctx.lineTo(260, 160);
+            } else if (ballerina.position === "third") {
+                ctx.moveTo(200, 140);
+                ctx.lineTo(260, 200);
+            } else if (ballerina.position === "fourth") {
+                ctx.moveTo(140, 160);
+                ctx.lineTo(200, 140);
+            }
+            ctx.stroke();
+
+            // Legs (adjust with position)
+            ctx.fillStyle = ballerina.shoes.color;
+            if (ballerina.position === "first") {
+                ctx.fillRect(185, 340, 30, 100); // Straight down
+                ctx.fillRect(185, 440, 30, 20); // Shoes
+            } else if (ballerina.position === "second") {
+                ctx.fillRect(160, 340, 30, 100); // Left leg
+                ctx.fillRect(210, 340, 30, 100); // Right leg
+                ctx.fillRect(160, 440, 30, 20); // Shoes
+                ctx.fillRect(210, 440, 30, 20);
+            } else if (ballerina.position === "third") {
+                ctx.fillRect(185, 340, 30, 100); // Back leg
+                ctx.fillRect(195, 340, 20, 80); // Front leg crossed
+                ctx.fillRect(195, 420, 20, 20);
+            } else if (ballerina.position === "fourth") {
+                ctx.fillRect(170, 340, 30, 100); // Back leg
+                ctx.fillRect(200, 340, 30, 80); // Front leg forward
+                ctx.fillRect(200, 420, 30, 20);
+            } else if (ballerina.position === "fifth") {
+                ctx.fillRect(180, 340, 30, 100); // Tight crossed legs
+                ctx.fillRect(190, 340, 20, 100);
+                ctx.fillRect(185, 440, 30, 20);
+            }
+
+            // Shoes detail
+            if (ballerina.shoes.style === "pointe") {
+                ctx.fillStyle = ballerina.shoes.color;
+                ctx.fillRect(180, 435, 40, 10); // Pointe tip
+            } else if (ballerina.shoes.style === "flat") {
+                ctx.fillRect(175, 440, 50, 15); // Flat shape
+            } else if (ballerina.shoes.style === "sneakers") {
+                ctx.fillRect(170, 435, 60, 20); // Chunky sneakers
+            }
+        }
+
+        // Initial draw
+        drawBallerina();
+    </script>
+</body>
+</html>
