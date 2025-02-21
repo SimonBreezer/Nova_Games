@@ -92,181 +92,91 @@
             parent: 'game',
             scene: {
                 preload: preload,
-                create: create,
-                update: update
+                create: create
             },
             backgroundColor: '#f9e6ff'
         };
 
         const game = new Phaser.Game(config);
-
-        let ballerina;
+        let gameScene;
 
         function preload() {
-            // Preload any assets if needed (e.g., sprites)
+            // Load body positions
+            this.load.image('body_first', 'assets/body_first.png');
+            this.load.image('body_second', 'assets/body_second.png');
+            this.load.image('body_third', 'assets/body_third.png');
+            this.load.image('body_fourth', 'assets/body_fourth.png');
+            this.load.image('body_fifth', 'assets/body_fifth.png');
+
+            // Load hair styles
+            this.load.image('hair_bun', 'assets/hair_bun.png');
+            this.load.image('hair_ponytail', 'assets/hair_ponytail.png');
+            this.load.image('hair_braid', 'assets/hair_braid.png');
+
+            // Load tops
+            this.load.image('top_leotard', 'assets/top_leotard.png');
+            this.load.image('top_tank', 'assets/top_tank.png');
+            this.load.image('top_crop', 'assets/top_crop.png');
+
+            // Load bottoms
+            this.load.image('bottom_tutu', 'assets/bottom_tutu.png');
+            this.load.image('bottom_skirt', 'assets/bottom_skirt.png');
+            this.load.image('bottom_leggings', 'assets/bottom_leggings.png');
+
+            // Load shoes
+            this.load.image('shoes_pointe', 'assets/shoes_pointe.png');
+            this.load.image('shoes_flat', 'assets/shoes_flat.png');
+            this.load.image('shoes_sneakers', 'assets/shoes_sneakers.png');
         }
 
         function create() {
-            // Create the ballerina group
-            ballerina = this.add.group();
+            gameScene = this;
 
-            // Background (simple gradient)
-            const graphics = this.add.graphics();
-            graphics.fillGradientStyle(0xf9e6ff, 0xf9e6ff, 0xffffff, 0xffffff, 1);
-            graphics.fillRect(0, 0, 400, 600);
+            // Create ballerina sprites (initially with default values)
+            this.ballerina = {
+                hair: this.add.sprite(200, 100, 'hair_bun').setOrigin(0.5),
+                body: this.add.sprite(200, 300, 'body_first').setOrigin(0.5),
+                top: this.add.sprite(200, 200, 'top_leotard').setOrigin(0.5),
+                bottom: this.add.sprite(200, 350, 'bottom_tutu').setOrigin(0.5),
+                shoes: this.add.sprite(200, 450, 'shoes_pointe').setOrigin(0.5)
+            };
 
-            // Initial draw
-            drawBallerina();
+            // Define updateBallerina function
+            this.updateBallerina = function() {
+                const position = document.getElementById("position").value;
+                const hairStyle = document.getElementById("hairStyle").value;
+                const hairColor = document.getElementById("hairColor").value;
+                const topStyle = document.getElementById("topStyle").value;
+                const topColor = document.getElementById("topColor").value;
+                const bottomStyle = document.getElementById("bottomStyle").value;
+                const bottomColor = document.getElementById("bottomColor").value;
+                const shoeStyle = document.getElementById("shoeStyle").value;
+                const shoeColor = document.getElementById("shoeColor").value;
+
+                // Update textures
+                this.ballerina.body.setTexture(`body_${position}`);
+                this.ballerina.hair.setTexture(`hair_${hairStyle}`);
+                this.ballerina.top.setTexture(`top_${topStyle}`);
+                this.ballerina.bottom.setTexture(`bottom_${bottomStyle}`);
+                this.ballerina.shoes.setTexture(`shoes_${shoeStyle}`);
+
+                // Update tints
+                this.ballerina.hair.setTint(Phaser.Display.Color.HexStringToColor(hairColor).color);
+                this.ballerina.top.setTint(Phaser.Display.Color.HexStringToColor(topColor).color);
+                this.ballerina.bottom.setTint(Phaser.Display.Color.HexStringToColor(bottomColor).color);
+                this.ballerina.shoes.setTint(Phaser.Display.Color.HexStringToColor(shoeColor).color);
+            };
+
+            // Initial update
+            this.updateBallerina();
         }
 
-        function update() {
-            // Update if needed
-        }
-
-        function drawBallerina() {
-            ballerina.clear(true, true);
-
-            const position = document.getElementById("position").value;
-            const hairStyle = document.getElementById("hairStyle").value;
-            const hairColor = document.getElementById("hairColor").value;
-            const topStyle = document.getElementById("topStyle").value;
-            const topColor = document.getElementById("topColor").value;
-            const bottomStyle = document.getElementById("bottomStyle").value;
-            const bottomColor = document.getElementById("bottomColor").value;
-            const shoeStyle = document.getElementById("shoeStyle").value;
-            const shoeColor = document.getElementById("shoeColor").value;
-
-            // Draw hair behind the face
-            drawHair(hairStyle, hairColor);
-
-            // Draw body parts in order
-            drawLegs(position);
-            drawBottom(bottomStyle, bottomColor);
-            drawTorso();
-            drawTop(topStyle, topColor);
-            drawArms(position);
-            drawHead();
-            drawShoes(shoeStyle, shoeColor);
-        }
-
-        function drawHead() {
-            const head = game.scene.scenes[0].add.circle(200, 100, 40, 0xf5d5b5);
-            ballerina.add(head);
-
-            // Eyes
-            const leftEye = game.scene.scenes[0].add.circle(185, 90, 5, 0x000000);
-            const rightEye = game.scene.scenes[0].add.circle(215, 90, 5, 0x000000);
-            ballerina.add(leftEye);
-            ballerina.add(rightEye);
-
-            // Nose
-            const nose = game.scene.scenes[0].add.triangle(200, 100, 198, 105, 202, 105, 200, 95, 0x000000);
-            ballerina.add(nose);
-
-            // Mouth
-            const mouth = game.scene.scenes[0].add.arc(200, 110, 10, 0, 180, false, 0xff0000);
-            ballerina.add(mouth);
-
-            // Blush
-            const leftBlush = game.scene.scenes[0].add.circle(175, 100, 5, 0xffc0cb);
-            const rightBlush = game.scene.scenes[0].add.circle(225, 100, 5, 0xffc0cb);
-            ballerina.add(leftBlush);
-            ballerina.add(rightBlush);
-        }
-
-        function drawHair(style, color) {
-            const hairColor = Phaser.Display.Color.HexStringToColor(color).color;
-
-            if (style === "bun") {
-                const bun = game.scene.scenes[0].add.circle(200, 70, 20, hairColor);
-                ballerina.add(bun);
-            } else if (style === "ponytail") {
-                const ponytail = game.scene.scenes[0].add.rectangle(200, 150, 20, 100, hairColor);
-                ballerina.add(ponytail);
-            } else if (style === "braid") {
-                const braid = game.scene.scenes[0].add.rectangle(200, 150, 20, 150, hairColor);
-                ballerina.add(braid);
-            }
-        }
-
-        function drawTorso() {
-            const torso = game.scene.scenes[0].add.rectangle(200, 180, 40, 80, 0xf5d5b5);
-            ballerina.add(torso);
-        }
-
-        function drawTop(style, color) {
-            const topColor = Phaser.Display.Color.HexStringToColor(color).color;
-
-            if (style === "leotard") {
-                const leotard = game.scene.scenes[0].add.rectangle(200, 180, 40, 80, topColor);
-                ballerina.add(leotard);
-            } else if (style === "tank") {
-                const tank = game.scene.scenes[0].add.rectangle(200, 180, 40, 60, topColor);
-                ballerina.add(tank);
-            } else if (style === "crop") {
-                const crop = game.scene.scenes[0].add.rectangle(200, 160, 40, 40, topColor);
-                ballerina.add(crop);
-            }
-        }
-
-        function drawBottom(style, color) {
-            const bottomColor = Phaser.Display.Color.HexStringToColor(color).color;
-
-            if (style === "tutu") {
-                const tutu = game.scene.scenes[0].add.circle(200, 240, 60, bottomColor);
-                ballerina.add(tutu);
-            } else if (style === "skirt") {
-                const skirt = game.scene.scenes[0].add.rectangle(200, 300, 80, 120, bottomColor);
-                ballerina.add(skirt);
-            } else if (style === "leggings") {
-                const leftLegging = game.scene.scenes[0].add.rectangle(190, 340, 20, 100, bottomColor);
-                const rightLegging = game.scene.scenes[0].add.rectangle(210, 340, 20, 100, bottomColor);
-                ballerina.add(leftLegging);
-                ballerina.add(rightLegging);
-            }
-        }
-
-        function drawArms(position) {
-            // Simplified arm positions
-            const leftArm = game.scene.scenes[0].add.rectangle(160, 180, 80, 20, 0xf5d5b5);
-            const rightArm = game.scene.scenes[0].add.rectangle(240, 180, 80, 20, 0xf5d5b5);
-            ballerina.add(leftArm);
-            ballerina.add(rightArm);
-        }
-
-        function drawLegs(position) {
-            // Simplified leg positions
-            const leftLeg = game.scene.scenes[0].add.rectangle(190, 340, 20, 100, 0xf5d5b5);
-            const rightLeg = game.scene.scenes[0].add.rectangle(210, 340, 20, 100, 0xf5d5b5);
-            ballerina.add(leftLeg);
-            ballerina.add(rightLeg);
-        }
-
-        function drawShoes(style, color) {
-            const shoeColor = Phaser.Display.Color.HexStringToColor(color).color;
-
-            if (style === "pointe") {
-                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 20, 20, shoeColor);
-                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 20, 20, shoeColor);
-                ballerina.add(leftShoe);
-                ballerina.add(rightShoe);
-            } else if (style === "flat") {
-                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 20, 15, shoeColor);
-                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 20, 15, shoeColor);
-                ballerina.add(leftShoe);
-                ballerina.add(rightShoe);
-            } else if (style === "sneakers") {
-                const leftShoe = game.scene.scenes[0].add.rectangle(190, 440, 30, 20, shoeColor);
-                const rightShoe = game.scene.scenes[0].add.rectangle(210, 440, 30, 20, shoeColor);
-                ballerina.add(leftShoe);
-                ballerina.add(rightShoe);
-            }
-        }
-
-        // Update ballerina when controls change
+        // Add event listeners to controls
         document.querySelectorAll("select, input").forEach(element => {
             element.addEventListener("change", () => {
-                drawBallerina();
+                if (gameScene) {
+                    gameScene.updateBallerina();
+                }
             });
         });
     </script>
