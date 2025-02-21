@@ -21,7 +21,7 @@
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="1400" height="600"></canvas> <!-- Increased to accommodate wider non-gameplay area -->
+    <canvas id="gameCanvas" width="1400" height="600"></canvas> <!-- Maintains wider non-gameplay area -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -66,21 +66,23 @@
         document.addEventListener('keydown', (e) => keys[e.code] = true);
         document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        // Code Stream Class (Single Character, Matrix-style, always visible)
+        // Code Stream Class (Single Character, Matrix-style with cascading brightness)
         class CodeStream {
             constructor(x, speed) {
                 this.x = x;
                 this.y = -CODE_HEIGHT;
                 this.speed = speed;
                 this.char = Math.random() < 0.5 ? '0' : '1'; // Single random character
+                this.brightness = 100; // Start at full brightness
             }
             update() {
                 this.y += this.speed * (abilities.timeControl.active ? 0.5 : 1);
+                this.brightness = (this.brightness + Math.random() * 10 - 5 + 20) % 80 + 20; // Vary brightness (20-100, never fades completely)
             }
             draw() {
                 ctx.font = '12px MatrixFont'; // Mimic Matrix font style
-                ctx.fillStyle = '#0f0'; // Full green, always visible
-                ctx.fillText(this.char, this.x + 300, this.y); // Offset for gameplay area (300 for wider non-gameplay area)
+                ctx.fillStyle = `rgba(0, ${this.brightness}, 0, 1)`; // Green, varying brightness for cascading effect
+                ctx.fillText(this.char, this.x + 300, this.y); // Offset for gameplay area
             }
         }
 
@@ -157,9 +159,9 @@
 
         // Spawn Code Streams with Matrix-style Maze Paths
         function spawnCode() {
-            if (!bossActive && Math.random() < 0.2) { // Reduced spawn rate for more maze paths
+            if (!bossActive && Math.random() < 0.15) { // Reduced spawn rate for more gaps
                 for (let i = 0; i < NUM_COLUMNS; i++) {
-                    if (Math.random() < 0.5) { // Increased gaps for more maze paths
+                    if (Math.random() < 0.4) { // Increased randomness for more gaps
                         let x = i * COLUMN_WIDTH + Math.random() * (COLUMN_WIDTH - CODE_WIDTH);
                         let speed = 2 + score / 10000; // Gradual speed increase
                         codeStreams.push(new CodeStream(x, speed));
@@ -243,6 +245,8 @@
                     codeStreams.splice(index, 1);
                 } else if (abilities.binaryBlast.active && Math.abs(code.x + 300 - player.x) < 50 && code.y < player.y) {
                     codeStreams.splice(index, 1);
+                } else if (abilities.timeControl.active && Math.abs(code.x + 300 - player.x) < 50) {
+                    code.speed *= 0.5; // Slow down code under time control
                 } else if (code.y > GAME_HEIGHT) {
                     codeStreams.splice(index, 1);
                     score += 1; // 1 point per dodged code
@@ -315,15 +319,22 @@
             for (let ability in abilities) {
                 let rechargePercent = abilities[ability].recharge / abilities[ability].maxRecharge;
                 ctx.fillStyle = '#0f0';
-                ctx.fillRect(10, barY, 280 * rechargePercent, 10); // Wider bars for expanded area
+                ctx.fillRect(10, barY, 180 * rechargePercent, 10); // Narrower bars to fit within 300 pixels
                 ctx.strokeStyle = '#0f0';
-                ctx.strokeRect(10, barY, 280, 10);
-                ctx.fillText(ability, 300, barY + 10); // Adjusted position for wider area
+                ctx.strokeRect(10, barY, 180, 10);
+                ctx.fillText(ability, 200, barY + 10); // Adjusted position for narrower bars
                 barY += 20;
             }
 
-            // Draw Controls Horizontally Below Abilities
-            ctx.fillText('Controls: Arrows to move, 1-Grind, 2-Immunity, 3-Time, 4-Blast, 5-Dash, Space to shoot during boss', 10, barY + 30);
+            // Draw Controls Horizontally on Separate Rows Below Abilities
+            let controlY = barY + 20;
+            ctx.fillText('Arrows to move', 10, controlY); controlY += 20;
+            ctx.fillText('1-Grind', 10, controlY); controlY += 20;
+            ctx.fillText('2-Immunity', 10, controlY); controlY += 20;
+            ctx.fillText('3-Time', 10, controlY); controlY += 20;
+            ctx.fillText('4-Blast', 10, controlY); controlY += 20;
+            ctx.fillText('5-Dash', 10, controlY); controlY += 20;
+            ctx.fillText('Space to shoot during boss', 10, controlY);
 
             if (gameOver) {
                 ctx.fillStyle = '#f00';
