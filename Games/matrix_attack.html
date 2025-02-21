@@ -8,364 +8,335 @@
         body {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #000;
-            overflow: hidden;
+            background-color: black;
         }
         canvas {
-            border: 1px solid #0f0;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="1400" height="600"></canvas> <!-- Maintains wider non-gameplay area -->
+    <canvas id="gameCanvas" width="1400" height="600"></canvas>
     <script>
+        // Get canvas and context
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Game Constants
-        const TOTAL_WIDTH = canvas.width;
-        const TOTAL_HEIGHT = canvas.height;
-        const GAME_WIDTH = 1000; // Gameplay area width
-        const GAME_HEIGHT = 600; // Gameplay area height
-        const PLAYER_WIDTH = 20;
-        const PLAYER_HEIGHT = 20;
-        const CODE_WIDTH = 10; // Narrower for single character
-        const CODE_HEIGHT = 15; // Adjusted for single character
-        const COLUMN_WIDTH = 20; // Narrower columns for denser streams
-        const NUM_COLUMNS = Math.floor(GAME_WIDTH / COLUMN_WIDTH);
-
-        // Game State
-        let player = {
-            x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2,
-            y: GAME_HEIGHT - PLAYER_HEIGHT - 10,
-            speed: 5,
-            lives: 3
-        };
-        let codeStreams = [];
-        let abilities = {
-            grindMode: { active: false, recharge: 0, maxRecharge: 300 },
-            matrixImmunity: { active: false, recharge: 0, maxRecharge: 400 },
-            timeControl: { active: false, recharge: 0, maxRecharge: 500 },
-            binaryBlast: { active: false, recharge: 0, maxRecharge: 450 },
-            dataDash: { active: false, recharge: 0, maxRecharge: 300 }
-        };
+        // Game state variables
         let score = 0;
-        let gameOver = false;
-        let bossActive = false;
-        let boss = null;
-        let projectiles = [];
-        let powerUp = null;
-        let bossTriggerScore = 10000; // Boss triggers at 10,000 points
-
-        // Input Handling
+        let lives = 50;
+        let player = { x: 490, y: 570, width: 20, height: 20, speed: 5 };
+        let codeCharacters = [];
+        let columns = [];
+        for (let i = 0; i < 50; i++) {
+            columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
+        }
+        let abilities = [
+            { name: "Grind Mode", rechargeTime: 300, currentRecharge: 0 },
+            { name: "Matrix Immunity", rechargeTime: 400, currentRecharge: 0 },
+            { name: "Time Control", rechargeTime: 500, currentRecharge: 0 },
+            { name: "Binary Blast", rechargeTime: 350, currentRecharge: 0 },
+            { name: "Data Dash", rechargeTime: 250, currentRecharge: 0 }
+        ];
         let keys = {};
-        document.addEventListener('keydown', (e) => keys[e.code] = true);
-        document.addEventListener('keyup', (e) => keys[e.code] = false);
+        let matrixImmunityActive = false;
+        let matrixImmunityTimer = 0;
+        let timeControlActive = false;
+        let timeControlTimer = 0;
+        let binaryBlastActive = false;
+        let binaryBlastTimer = 0;
+        let dataDashActive = false;
+        let dataDashTimer = 0;
+        let boss = null;
+        let powerUp = null;
+        let canShoot = false;
+        let projectiles = [];
+        let frameCount = 0;
 
-        // Code Stream Class (Single Character, constant green color)
-        class CodeStream {
-            constructor(x, speed, char) {
-                this.x = x;
-                this.y = -CODE_HEIGHT;
-                this.speed = speed;
-                this.char = char; // Single random character (0 or 1), pre-assigned for connected paths
-            }
-            update() {
-                this.y += this.speed * (abilities.timeControl.active ? 0.25 : 0.5); // Slower fall speed
-            }
-            draw() {
-                ctx.font = '12px MatrixFont'; // Mimic Matrix font style
-                ctx.fillStyle = '#0f0'; // Constant full green color, no brightness change
-                ctx.fillText(this.char, this.x + 400, this.y); // Offset for gameplay area
-            }
+        // Keyboard event listeners
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        // Ability activation functions
+        function activateGrindMode() {
+            let clearLeft = player.x - 25;
+            let clearRight = player.x + 25;
+            codeCharacters = codeCharacters.filter((code) => code.x < clearLeft || code.x > clearRight);
         }
 
-        // Boss Class
-        class Boss {
-            constructor(name, health, attackPattern) {
-                this.name = name;
-                this.health = health;
-                this.x = GAME_WIDTH / 2 - 50;
-                this.y = 50;
-                this.width = 100;
-                this.height = 100;
-                this.speed = 2; // Horizontal movement speed
-                this.direction = 1; // 1 = right, -1 = left
-                this.attackPattern = attackPattern;
-                this.attackTimer = 0;
-            }
-            update() {
-                // Horizontal movement
-                this.x += this.speed * this.direction;
-                if (this.x <= 0 || this.x + this.width >= GAME_WIDTH) {
-                    this.direction *= -1;
-                }
-                this.attackTimer++;
-                if (this.attackTimer > 60) {
-                    this.attackPattern(this.x + this.width / 2); // Attack from current position
-                    this.attackTimer = 0;
-                }
-            }
-            draw() {
-                ctx.fillStyle = '#0f0';
-                ctx.fillRect(this.x + 400, this.y, this.width, this.height); // Offset for gameplay area
-                ctx.fillStyle = '#000';
-                ctx.font = '20px Arial';
-                ctx.fillText(this.name, this.x + 410, this.y + 50);
-                ctx.fillText(`HP: ${this.health}`, this.x + 410, this.y + 70);
-            }
+        function activateMatrixImmunity() {
+            matrixImmunityActive = true;
+            matrixImmunityTimer = 180; // 3 seconds at 60 fps
         }
 
-        // Power-Up Class
-        class PowerUp {
-            constructor() {
-                this.x = Math.random() * (GAME_WIDTH - 20);
-                this.y = GAME_HEIGHT / 2; // Static position
-                this.width = 20;
-                this.height = 20;
-                this.collected = false;
-            }
-            draw() {
-                ctx.fillStyle = '#ff0';
-                ctx.fillRect(this.x + 400, this.y, this.width, this.height); // Offset for gameplay area
-                ctx.fillStyle = '#000';
-                ctx.font = '10px Arial';
-                ctx.fillText('KB', this.x + 404, this.y + 15);
-            }
+        function activateTimeControl() {
+            timeControlActive = true;
+            timeControlTimer = 240; // 4 seconds
         }
 
-        // Projectile Class
-        class Projectile {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.speed = -2; // Slower "truth" speed
-            }
-            update() {
-                this.y += this.speed;
-            }
-            draw() {
-                ctx.fillStyle = '#fff';
-                ctx.font = '15px Arial';
-                ctx.fillText('truth', this.x, this.y);
-            }
+        function activateBinaryBlast() {
+            binaryBlastActive = true;
+            binaryBlastTimer = 60; // 1 second
         }
 
-        // Generate Connected Maze Path for Code Streams
-        function generateMazePath() {
-            let maze = new Array(NUM_COLUMNS).fill().map(() => []);
-            for (let col = 0; col < NUM_COLUMNS; col++) {
-                let isGap = Math.random() < 0.6; // Higher probability of gaps for more paths
-                let prevGap = col > 0 ? maze[col - 1][maze[col - 1].length - 1] === null : false;
-                if (isGap || prevGap) {
-                    maze[col].push(null); // Gap (no code)
-                } else {
-                    maze[col].push(Math.random() < 0.5 ? '0' : '1'); // Code (0 or 1)
-                }
-            }
-            return maze;
+        function activateDataDash() {
+            dataDashActive = true;
+            dataDashTimer = 120; // 2 seconds
         }
 
-        // Spawn Code Streams with Connected Maze Paths
-        let mazePath = generateMazePath();
-        function spawnCode() {
-            if (!bossActive) {
-                let newMazePath = generateMazePath(); // Generate new path for each spawn
-                for (let i = 0; i < NUM_COLUMNS; i++) {
-                    let char = newMazePath[i][0];
-                    if (char !== null) { // Only spawn if there’s code
-                        let x = i * COLUMN_WIDTH + Math.random() * (COLUMN_WIDTH - CODE_WIDTH);
-                        codeStreams.push(new CodeStream(x, 0.5, char)); // Slower fall speed (0.5)
-                    }
-                }
-                mazePath = newMazePath; // Update maze path for next row connection
-            }
-        }
-
-        // Spawn Boss
-        function spawnBoss() {
-            if (!bossActive && score >= bossTriggerScore) {
-                boss = new Boss('Politician', 5, (x) => {
-                    codeStreams.push(new CodeStream(x, 0.5, Math.random() < 0.5 ? '0' : '1')); // Slower boss attack
-                });
-                powerUp = new PowerUp();
-                bossActive = true;
-            }
-        }
-
-        // Update Game
+        // Update game state
         function update() {
-            if (gameOver) return;
+            frameCount++;
 
-            // Player Movement
-            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed * (abilities.dataDash.active ? 2 : 1);
-            if (keys['ArrowRight'] && player.x < GAME_WIDTH - PLAYER_WIDTH) player.x += player.speed * (abilities.dataDash.active ? 2 : 1);
-            if (keys['ArrowUp'] && player.y > 0) player.y -= player.speed * (abilities.dataDash.active ? 2 : 1);
-            if (keys['ArrowDown'] && player.y < GAME_HEIGHT - PLAYER_HEIGHT) player.y += player.speed * (abilities.dataDash.active ? 2 : 1);
+            // Player movement
+            let currentSpeed = dataDashActive ? 10 : 5;
+            if (keys['ArrowLeft']) player.x -= currentSpeed;
+            if (keys['ArrowRight']) player.x += currentSpeed;
+            if (keys['ArrowUp']) player.y -= currentSpeed;
+            if (keys['ArrowDown']) player.y += currentSpeed;
 
-            // Abilities (Adjusted to spawn from player position)
-            if (keys['Digit1'] && abilities.grindMode.recharge >= abilities.grindMode.maxRecharge) {
-                abilities.grindMode.active = true;
-                abilities.grindMode.recharge = 0;
-                setTimeout(() => abilities.grindMode.active = false, 2000);
-            }
-            if (keys['Digit2'] && abilities.matrixImmunity.recharge >= abilities.matrixImmunity.maxRecharge) {
-                abilities.matrixImmunity.active = true;
-                abilities.matrixImmunity.recharge = 0;
-                setTimeout(() => abilities.matrixImmunity.active = false, 3000);
-            }
-            if (keys['Digit3'] && abilities.timeControl.recharge >= abilities.timeControl.maxRecharge) {
-                abilities.timeControl.active = true;
-                abilities.timeControl.recharge = 0;
-                setTimeout(() => abilities.timeControl.active = false, 4000);
-            }
-            if (keys['Digit4'] && abilities.binaryBlast.recharge >= abilities.binaryBlast.maxRecharge) {
-                abilities.binaryBlast.active = true;
-                abilities.binaryBlast.recharge = 0;
-                setTimeout(() => abilities.binaryBlast.active = false, 1000);
-            }
-            if (keys['Digit5'] && abilities.dataDash.recharge >= abilities.dataDash.maxRecharge) {
-                abilities.dataDash.active = true;
-                abilities.dataDash.recharge = 0;
-                setTimeout(() => abilities.dataDash.active = false, 2000);
-            }
-            if (keys['Space'] && powerUp && powerUp.collected) {
-                projectiles.push(new Projectile(player.x + 400 + PLAYER_WIDTH / 2, player.y));
-            }
+            // Keep player within gameplay area (x: 400-1380, y: 0-580)
+            player.x = Math.max(400, Math.min(1380, player.x));
+            player.y = Math.max(0, Math.min(580, player.y));
 
-            // Auto-Collect Power-Up
-            if (powerUp && !powerUp.collected &&
-                player.x < powerUp.x + powerUp.width && player.x + PLAYER_WIDTH > powerUp.x &&
-                player.y < powerUp.y + powerUp.height && player.y + PLAYER_HEIGHT > powerUp.y) {
-                powerUp.collected = true;
-            }
-
-            // Recharge Abilities
-            for (let ability in abilities) {
-                if (abilities[ability].recharge < abilities[ability].maxRecharge) {
-                    abilities[ability].recharge++;
-                }
-            }
-
-            // Update Code Streams
-            spawnCode();
-            codeStreams.forEach((code, index) => {
-                code.update();
-                if (abilities.grindMode.active && Math.abs(code.x + 400 - player.x) < 50) {
-                    codeStreams.splice(index, 1);
-                } else if (abilities.matrixImmunity.active && Math.abs(code.x + 400 - player.x) < 50 && Math.abs(code.y - player.y) < 50) {
-                    codeStreams.splice(index, 1);
-                } else if (abilities.binaryBlast.active && Math.abs(code.x + 400 - player.x) < 50 && code.y < player.y) {
-                    codeStreams.splice(index, 1);
-                } else if (abilities.timeControl.active) {
-                    code.speed *= 0.25; // Further slow down under time control
-                } else if (code.y > GAME_HEIGHT) {
-                    codeStreams.splice(index, 1);
-                    score += 1; // 1 point per dodged code
-                } else if (code.x + 400 < player.x + PLAYER_WIDTH && code.x + 400 + CODE_WIDTH > player.x &&
-                    code.y < player.y + PLAYER_HEIGHT && code.y + CODE_HEIGHT > player.y) {
-                    codeStreams.splice(index, 1);
-                    player.lives--;
-                    if (player.lives <= 0) gameOver = true;
+            // Spawn code streams (15% probability per column per frame)
+            columns.forEach((colX) => {
+                if (Math.random() < 0.15) {
+                    let char = Math.random() < 0.5 ? '0' : '1';
+                    codeCharacters.push({ x: colX, y: 0, char: char });
                 }
             });
 
-            // Update Boss
-            spawnBoss();
-            if (boss) {
-                boss.update();
+            // Update code characters
+            let codeSpeed = timeControlActive ? 0.25 : 0.5;
+            codeCharacters.forEach((code, index) => {
+                code.y += codeSpeed;
+                if (!matrixImmunityActive && lives > 0) {
+                    // Collision with player
+                    if (code.y + 15 > player.y && code.y < player.y + player.height &&
+                        code.x - 5 < player.x + player.width && code.x + 5 > player.x) {
+                        lives--;
+                        codeCharacters.splice(index, 1);
+                        index--;
+                    }
+                    // Reaches bottom without hitting player
+                    else if (code.y >= 600) {
+                        score++;
+                        codeCharacters.splice(index, 1);
+                        index--;
+                    }
+                } else if (code.y >= 600) {
+                    // Remove characters that reach bottom
+                    codeCharacters.splice(index, 1);
+                    index--;
+                }
+            });
+
+            // Update abilities recharge
+            abilities.forEach((ability) => {
+                if (ability.currentRecharge < ability.rechargeTime) {
+                    ability.currentRecharge++;
+                }
+            });
+
+            // Activate abilities
+            if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
+                activateGrindMode();
+                abilities[0].currentRecharge = 0;
+            }
+            if (keys['2'] && abilities[1].currentRecharge >= abilities[1].rechargeTime) {
+                activateMatrixImmunity();
+                abilities[1].currentRecharge = 0;
+            }
+            if (keys['3'] && abilities[2].currentRecharge >= abilities[2].rechargeTime) {
+                activateTimeControl();
+                abilities[2].currentRecharge = 0;
+            }
+            if (keys['4'] && abilities[3].currentRecharge >= abilities[3].rechargeTime) {
+                activateBinaryBlast();
+                abilities[3].currentRecharge = 0;
+            }
+            if (keys['5'] && abilities[4].currentRecharge >= abilities[4].rechargeTime) {
+                activateDataDash();
+                abilities[4].currentRecharge = 0;
+            }
+
+            // Handle active abilities
+            if (matrixImmunityActive) {
+                codeCharacters = codeCharacters.filter((code) => {
+                    let dx = code.x - (player.x + 10);
+                    let dy = code.y - (player.y + 10);
+                    return Math.hypot(dx, dy) > 50;
+                });
+                matrixImmunityTimer--;
+                if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
+            }
+            if (binaryBlastActive) {
+                codeCharacters = codeCharacters.filter((code) =>
+                    !(code.y < player.y + 10 && Math.abs(code.x - (player.x + 10)) <= 50));
+                binaryBlastTimer--;
+                if (binaryBlastTimer <= 0) binaryBlastActive = false;
+            }
+            if (dataDashActive) {
+                dataDashTimer--;
+                if (dataDashTimer <= 0) dataDashActive = false;
+            }
+            if (timeControlActive) {
+                timeControlTimer--;
+                if (timeControlTimer <= 0) timeControlActive = false;
+            }
+
+            // Boss logic
+            if (score >= 10000 && boss === null && lives > 0) {
+                boss = { x: 700, y: 50, width: 100, height: 100, vx: 2, health: 10 };
+                powerUp = {
+                    x: 410 + Math.random() * 980,
+                    y: 10 + Math.random() * 580,
+                    width: 20,
+                    height: 20
+                };
+            }
+            if (boss !== null) {
+                boss.x += boss.vx;
+                if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
+                if (frameCount % 60 === 0) {
+                    let char = Math.random() < 0.5 ? '0' : '1';
+                    codeCharacters.push({ x: boss.x + 50, y: boss.y + 100, char: char });
+                }
+                // Power-up collection
+                if (powerUp !== null && player.x < powerUp.x + powerUp.width &&
+                    player.x + player.width > powerUp.x &&
+                    player.y < powerUp.y + powerUp.height &&
+                    player.y + player.height > powerUp.y) {
+                    canShoot = true;
+                    powerUp = null;
+                }
+                // Shoot projectiles
+                if (canShoot && keys[' '] && frameCount % 30 === 0) {
+                    projectiles.push({ x: player.x + 10, y: player.y });
+                }
+                // Update projectiles
                 projectiles.forEach((proj, index) => {
-                    proj.update();
-                    if (proj.x > boss.x + 400 && proj.x < boss.x + 400 + boss.width && proj.y > boss.y && proj.y < boss.y + boss.height) {
+                    proj.y -= 2;
+                    if (proj.y < 0) {
+                        projectiles.splice(index, 1);
+                        index--;
+                    } else if (boss !== null && proj.y < boss.y + boss.height &&
+                               proj.y > boss.y && proj.x > boss.x &&
+                               proj.x < boss.x + boss.width) {
                         boss.health--;
                         projectiles.splice(index, 1);
+                        index--;
                         if (boss.health <= 0) {
                             boss = null;
-                            bossActive = false;
-                            powerUp = null;
-                            codeStreams = [];
+                            canShoot = false;
+                            projectiles = [];
                         }
-                    } else if (proj.y < 0) {
-                        projectiles.splice(index, 1);
                     }
                 });
             }
         }
 
-        // Draw Game
+        // Render game
         function draw() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, TOTAL_WIDTH, TOTAL_HEIGHT);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Gameplay Area Border (Green Square)
-            ctx.strokeStyle = '#0f0';
+            // Gameplay area border
+            ctx.strokeStyle = 'green';
             ctx.lineWidth = 2;
-            ctx.strokeRect(400, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.strokeRect(400, 0, 1000, 600);
 
-            // Draw Player
-            ctx.fillStyle = abilities.timeControl.active ? 'rgba(0, 255, 0, 0.5)' : '#0f0';
-            ctx.fillRect(player.x + 400, player.y, PLAYER_WIDTH, PLAYER_HEIGHT); // Offset for gameplay area
-            if (abilities.matrixImmunity.active) {
-                ctx.beginPath();
-                ctx.arc(player.x + 400 + PLAYER_WIDTH / 2, player.y + PLAYER_HEIGHT / 2, 50, 0, Math.PI * 2);
-                ctx.strokeStyle = '#0f0';
-                ctx.stroke();
-            }
+            // Player
+            ctx.fillStyle = 'green';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
 
-            // Draw Code Streams (Confined to gameplay area)
-            codeStreams.forEach(code => code.draw());
-
-            // Draw Boss and Power-Up
-            if (boss) boss.draw();
-            if (powerUp && !powerUp.collected) powerUp.draw();
-            projectiles.forEach(proj => proj.draw());
-
-            // Draw HUD (Left Side, Outside Gameplay Area)
+            // Code characters
+            ctx.font = '12px Courier'; // Fallback for MatrixFont
             ctx.fillStyle = '#0f0';
+            codeCharacters.forEach((code) => {
+                ctx.fillText(code.char, code.x - 5, code.y);
+            });
+
+            // HUD
+            ctx.fillStyle = 'green';
             ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 10, 30);
-            ctx.fillText(`Lives: ${player.lives}`, 10, 60);
+            ctx.fillText(`Lives: ${lives}`, 10, 60);
 
-            // Draw Ability Recharge Bars
+            // Ability recharge bars
             let barY = 100;
-            for (let ability in abilities) {
-                let rechargePercent = abilities[ability].recharge / abilities[ability].maxRecharge;
-                ctx.fillStyle = '#0f0';
-                ctx.fillRect(10, barY, 180 * rechargePercent, 10); // Narrow bars to fit within 400 pixels
-                ctx.strokeStyle = '#0f0';
-                ctx.strokeRect(10, barY, 180, 10);
-                ctx.fillText(ability, 200, barY + 10); // Adjusted position for narrower bars
+            abilities.forEach((ability) => {
+                let rechargePercent = ability.currentRecharge / ability.rechargeTime;
+                ctx.fillStyle = `rgb(0, ${255 * rechargePercent}, 0)`;
+                ctx.fillRect(10, barY, 180 * rechargePercent, 10);
+                ctx.fillStyle = 'green';
+                ctx.font = '16px Arial';
+                ctx.fillText(ability.name, 200, barY + 8);
                 barY += 20;
-            }
+            });
 
-            // Draw Controls Horizontally on Separate Rows Below Abilities
+            // Controls
             let controlY = barY + 20;
-            ctx.fillText('Arrows to move', 10, controlY); controlY += 20;
-            ctx.fillText('1-Grind', 10, controlY); controlY += 20;
-            ctx.fillText('2-Immunity', 10, controlY); controlY += 20;
-            ctx.fillText('3-Time', 10, controlY); controlY += 20;
-            ctx.fillText('4-Blast', 10, controlY); controlY += 20;
-            ctx.fillText('5-Dash', 10, controlY); controlY += 20;
-            ctx.fillText('Space to shoot during boss', 10, controlY);
+            const controls = [
+                "Arrows to move",
+                "1-Grind_Mode",
+                "2-Matrix_Immunity",
+                "3-Time_Control",
+                "4-Binary_Blast",
+                "5-Data_Dash",
+                "Space to shoot during boss"
+            ];
+            ctx.fillStyle = 'green';
+            ctx.font = '16px Arial';
+            controls.forEach((text, index) => {
+                ctx.fillText(text, 10, controlY + index * 20);
+            });
 
-            if (gameOver) {
-                ctx.fillStyle = '#f00';
-                ctx.font = '40px Arial';
-                ctx.fillText('GAME OVER', 400 + (GAME_WIDTH - 150) / 2, GAME_HEIGHT / 2); // Centered in gameplay area
+            // Boss
+            if (boss !== null) {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                ctx.fillStyle = 'black';
+                ctx.font = '16px Arial';
+                ctx.fillText("Politician", boss.x + 10, boss.y + 20);
+                ctx.fillText(`HP: ${boss.health}`, boss.x + 10, boss.y + 40);
             }
+
+            // Power-up
+            if (powerUp !== null) {
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.fillText("Keyboard", powerUp.x + 2, powerUp.y + 15);
+            }
+
+            // Projectiles
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            projectiles.forEach((proj) => {
+                ctx.fillText("truth", proj.x - 10, proj.y);
+            });
+
+            // Game over
+            if (lives <= 0) {
+                ctx.fillStyle = 'red';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("GAME OVER - The Matrix Has You", 900, 300);
+            }
+            ctx.textAlign = 'left'; // Reset alignment
         }
 
-        // Game Loop
+        // Game loop
         function gameLoop() {
-            update();
+            if (lives > 0 || boss !== null) {
+                update();
+            }
             draw();
             requestAnimationFrame(gameLoop);
         }
-
         gameLoop();
     </script>
 </body>
