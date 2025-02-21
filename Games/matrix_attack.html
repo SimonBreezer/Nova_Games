@@ -29,7 +29,7 @@
         // Game Constants
         const TOTAL_WIDTH = canvas.width;
         const TOTAL_HEIGHT = canvas.height;
-        const GAME_WIDTH = 1000; // Reduced gameplay area width to 1000 pixels
+        const GAME_WIDTH = 1000; // Gameplay area width
         const GAME_HEIGHT = 600; // Gameplay area height
         const PLAYER_WIDTH = 20;
         const PLAYER_HEIGHT = 20;
@@ -82,7 +82,7 @@
             draw() {
                 ctx.font = '12px MatrixFont'; // Mimic Matrix font style
                 ctx.fillStyle = `rgba(0, ${this.brightness}, 0, 1)`; // Green, varying brightness for cascading effect
-                ctx.fillText(this.char, this.x + 400, this.y); // Offset for gameplay area (400 for wider non-gameplay area)
+                ctx.fillText(this.char, this.x + 400, this.y); // Offset for gameplay area
             }
         }
 
@@ -263,12 +263,12 @@
                     codeStreams.splice(index, 1);
                 } else if (abilities.binaryBlast.active && Math.abs(code.x + 400 - player.x) < 50 && code.y < player.y) {
                     codeStreams.splice(index, 1);
-                } else if (abilities.timeControl.active && Math.abs(code.x + 400 - player.x) < 50) {
+                } else if (abilities.timeControl.active) {
                     code.speed *= 0.25; // Further slow down under time control
                 } else if (code.y > GAME_HEIGHT) {
                     codeStreams.splice(index, 1);
                     score += 1; // 1 point per dodged code
-                } else if (!abilities.timeControl.active && code.x + 400 < player.x + PLAYER_WIDTH && code.x + 400 + CODE_WIDTH > player.x &&
+                } else if (code.x + 400 < player.x + PLAYER_WIDTH && code.x + 400 + CODE_WIDTH > player.x &&
                     code.y < player.y + PLAYER_HEIGHT && code.y + CODE_HEIGHT > player.y) {
                     codeStreams.splice(index, 1);
                     player.lives--;
