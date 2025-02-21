@@ -29,10 +29,12 @@
         // Game Constants
         const CANVAS_WIDTH = canvas.width;
         const CANVAS_HEIGHT = canvas.height;
-        const PLAYER_WIDTH = 30;
-        const PLAYER_HEIGHT = 30;
-        const CODE_WIDTH = 20;
+        const PLAYER_WIDTH = 20;
+        const PLAYER_HEIGHT = 20;
+        const CODE_WIDTH = 30;
         const CODE_HEIGHT = 20;
+        const COLUMN_WIDTH = 40;
+        const NUM_COLUMNS = Math.floor(CANVAS_WIDTH / COLUMN_WIDTH);
 
         // Game State
         let player = {
@@ -64,10 +66,11 @@
 
         // Code Stream Class
         class CodeStream {
-            constructor(x, speed) {
+            constructor(x, speed, binary) {
                 this.x = x;
                 this.y = -CODE_HEIGHT;
                 this.speed = speed;
+                this.binary = binary; // Random binary string
             }
             update() {
                 this.y += this.speed * (abilities.timeControl.active ? 0.5 : 1);
@@ -75,8 +78,9 @@
             draw() {
                 ctx.fillStyle = '#0f0';
                 ctx.fillRect(this.x, this.y, CODE_WIDTH, CODE_HEIGHT);
-                ctx.font = '10px Arial';
-                ctx.fillText('1010', this.x + 2, this.y + 15);
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#000';
+                ctx.fillText(this.binary, this.x + 2, this.y + 15);
             }
         }
 
@@ -109,13 +113,14 @@
             }
         }
 
-        // Power-Up Class (Keyboard for bosses)
+        // Power-Up Class
         class PowerUp {
             constructor() {
                 this.x = Math.random() * (CANVAS_WIDTH - 20);
                 this.y = CANVAS_HEIGHT / 2;
                 this.width = 20;
                 this.height = 20;
+                this.collected = false;
             }
             draw() {
                 ctx.fillStyle = '#ff0';
@@ -126,7 +131,7 @@
             }
         }
 
-        // Projectile Class (Player shoots "truth")
+        // Projectile Class
         class Projectile {
             constructor(x, y) {
                 this.x = x;
@@ -143,11 +148,25 @@
             }
         }
 
-        // Spawn Code Streams
+        // Generate Random Binary String
+        function getRandomBinary() {
+            let binary = '';
+            for (let i = 0; i < 6; i++) {
+                binary += Math.random() < 0.5 ? '0' : '1';
+            }
+            return binary;
+        }
+
+        // Spawn Code Streams with Safe Path
         function spawnCode() {
-            if (!bossActive && Math.random() < 0.05) {
-                let x = Math.random() * (CANVAS_WIDTH - CODE_WIDTH);
-                codeStreams.push(new CodeStream(x, 2 + score / 1000));
+            if (!bossActive && Math.random() < 0.2) { // Increased spawn rate
+                let safeColumn = Math.floor(player.x / COLUMN_WIDTH); // Ensure a safe path near player
+                for (let i = 0; i < NUM_COLUMNS; i++) {
+                    if (i !== safeColumn && i !== safeColumn + 1 && Math.random() < 0.8) { // Gaps for safe path
+                        let x = i * COLUMN_WIDTH;
+                        codeStreams.push(new CodeStream(x, 2 + score / 1000, getRandomBinary()));
+                    }
+                }
             }
         }
 
@@ -156,28 +175,28 @@
             if (!bossActive) {
                 if (score >= 1000 && !boss) {
                     boss = new Boss('Politician', 5, () => {
-                        codeStreams.push(new CodeStream(boss.x + boss.width / 2, 3));
+                        codeStreams.push(new CodeStream(boss.x + boss.width / 2, 3, getRandomBinary()));
                     });
                     powerUp = new PowerUp();
                     bossActive = true;
                 } else if (score >= 3000 && !boss) {
                     boss = new Boss('Media Mogul', 6, () => {
-                        codeStreams.push(new CodeStream(boss.x + boss.width / 4, 3));
-                        codeStreams.push(new CodeStream(boss.x + 3 * boss.width / 4, 3));
+                        codeStreams.push(new CodeStream(boss.x + boss.width / 4, 3, getRandomBinary()));
+                        codeStreams.push(new CodeStream(boss.x + 3 * boss.width / 4, 3, getRandomBinary()));
                     });
                     powerUp = new PowerUp();
                     bossActive = true;
                 } else if (score >= 6000 && !boss) {
                     boss = new Boss('Corporate Overlord', 7, () => {
                         for (let i = 0; i < 3; i++) {
-                            codeStreams.push(new CodeStream(boss.x + i * 30, 3));
+                            codeStreams.push(new CodeStream(boss.x + i * 30, 3, getRandomBinary()));
                         }
                     });
                     powerUp = new PowerUp();
                     bossActive = true;
                 } else if (score >= 10000 && !boss) {
                     boss = new Boss('AI Overmind', 8, () => {
-                        codeStreams.push(new CodeStream(boss.x + Math.random() * boss.width, 4));
+                        codeStreams.push(new CodeStream(boss.x + Math.random() * boss.width, 4, getRandomBinary()));
                     });
                     powerUp = new PowerUp();
                     bossActive = true;
@@ -192,46 +211,49 @@
             // Player Movement
             if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed * (abilities.dataDash.active ? 2 : 1);
             if (keys['ArrowRight'] && player.x < CANVAS_WIDTH - PLAYER_WIDTH) player.x += player.speed * (abilities.dataDash.active ? 2 : 1);
+            if (keys['ArrowUp'] && player.y > 0) player.y -= player.speed * (abilities.dataDash.active ? 2 : 1);
+            if (keys['ArrowDown'] && player.y < CANVAS_HEIGHT - PLAYER_HEIGHT) player.y += player.speed * (abilities.dataDash.active ? 2 : 1);
 
             // Abilities
-            if (keys['KeyG'] && abilities.grindMode.recharge >= abilities.grindMode.maxRecharge) {
+            if (keys['Digit1'] && abilities.grindMode.recharge >= abilities.grindMode.maxRecharge) {
                 abilities.grindMode.active = true;
                 abilities.grindMode.recharge = 0;
                 setTimeout(() => abilities.grindMode.active = false, 2000);
             }
-            if (keys['KeyM'] && abilities.matrixImmunity.recharge >= abilities.matrixImmunity.maxRecharge) {
+            if (keys['Digit2'] && abilities.matrixImmunity.recharge >= abilities.matrixImmunity.maxRecharge) {
                 abilities.matrixImmunity.active = true;
                 abilities.matrixImmunity.recharge = 0;
                 setTimeout(() => abilities.matrixImmunity.active = false, 3000);
             }
-            if (keys['KeyT'] && abilities.timeControl.recharge >= abilities.timeControl.maxRecharge) {
+            if (keys['Digit3'] && abilities.timeControl.recharge >= abilities.timeControl.maxRecharge) {
                 abilities.timeControl.active = true;
                 abilities.timeControl.recharge = 0;
                 setTimeout(() => abilities.timeControl.active = false, 4000);
             }
-            if (keys['KeyC'] && abilities.codeCloak.recharge >= abilities.codeCloak.maxRecharge) {
+            if (keys['Digit4'] && abilities.codeCloak.recharge >= abilities.codeCloak.maxRecharge) {
                 abilities.codeCloak.active = true;
                 abilities.codeCloak.recharge = 0;
                 setTimeout(() => abilities.codeCloak.active = false, 5000);
             }
-            if (keys['KeyB'] && abilities.binaryBlast.recharge >= abilities.binaryBlast.maxRecharge) {
+            if (keys['Digit5'] && abilities.binaryBlast.recharge >= abilities.binaryBlast.maxRecharge) {
                 abilities.binaryBlast.active = true;
                 abilities.binaryBlast.recharge = 0;
                 setTimeout(() => abilities.binaryBlast.active = false, 1000);
             }
-            if (keys['KeyD'] && abilities.dataDash.recharge >= abilities.dataDash.maxRecharge) {
+            if (keys['Digit6'] && abilities.dataDash.recharge >= abilities.dataDash.maxRecharge) {
                 abilities.dataDash.active = true;
                 abilities.dataDash.recharge = 0;
                 setTimeout(() => abilities.dataDash.active = false, 2000);
             }
-            if (keys['Space'] && powerUp && !powerUp.collected) {
-                if (player.x < powerUp.x + powerUp.width && player.x + PLAYER_WIDTH > powerUp.x &&
-                    player.y < powerUp.y + powerUp.height && player.y + PLAYER_HEIGHT > powerUp.y) {
-                    powerUp.collected = true;
-                }
-            }
             if (keys['Space'] && powerUp && powerUp.collected) {
                 projectiles.push(new Projectile(player.x + PLAYER_WIDTH / 2, player.y));
+            }
+
+            // Auto-Collect Power-Up
+            if (powerUp && !powerUp.collected &&
+                player.x < powerUp.x + powerUp.width && player.x + PLAYER_WIDTH > powerUp.x &&
+                player.y < powerUp.y + powerUp.height && player.y + PLAYER_HEIGHT > powerUp.y) {
+                powerUp.collected = true;
             }
 
             // Recharge Abilities
@@ -313,7 +335,7 @@
             ctx.font = '20px Arial';
             ctx.fillText(`Score: ${score}`, 10, 30);
             ctx.fillText(`Lives: ${player.lives}`, 10, 60);
-            ctx.fillText('Abilities: G:Grind M:Immunity T:Time C:Cloak B:Blast D:Dash', 10, CANVAS_HEIGHT - 40);
+            ctx.fillText('Abilities: 1:Grind 2:Immunity 3:Time 4:Cloak 5:Blast 6:Dash', 10, CANVAS_HEIGHT - 40);
             let abilityStatus = '';
             for (let ability in abilities) {
                 abilityStatus += `${ability}: ${(abilities[ability].recharge / abilities[ability].maxRecharge * 100).toFixed(0)}% `;
