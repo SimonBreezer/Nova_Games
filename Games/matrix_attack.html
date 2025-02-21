@@ -58,6 +58,7 @@
         let boss = null;
         let projectiles = [];
         let powerUp = null;
+        let bossTriggerScore = 10000; // Boss triggers at 10,000 points
 
         // Input Handling
         let keys = {};
@@ -70,17 +71,15 @@
                 this.x = x;
                 this.y = -CODE_HEIGHT;
                 this.speed = speed;
-                this.binary = binary; // Random binary string
+                this.binary = binary;
             }
             update() {
                 this.y += this.speed * (abilities.timeControl.active ? 0.5 : 1);
             }
             draw() {
-                ctx.fillStyle = '#0f0';
-                ctx.fillRect(this.x, this.y, CODE_WIDTH, CODE_HEIGHT);
                 ctx.font = '12px Arial';
-                ctx.fillStyle = '#000';
-                ctx.fillText(this.binary, this.x + 2, this.y + 15);
+                ctx.fillStyle = '#0f0';
+                ctx.fillText(this.binary, this.x, this.y);
             }
         }
 
@@ -93,13 +92,20 @@
                 this.y = 50;
                 this.width = 100;
                 this.height = 100;
+                this.speed = 2; // Horizontal movement speed
+                this.direction = 1; // 1 = right, -1 = left
                 this.attackPattern = attackPattern;
                 this.attackTimer = 0;
             }
             update() {
+                // Horizontal movement
+                this.x += this.speed * this.direction;
+                if (this.x <= 0 || this.x + this.width >= CANVAS_WIDTH) {
+                    this.direction *= -1;
+                }
                 this.attackTimer++;
                 if (this.attackTimer > 60) {
-                    this.attackPattern();
+                    this.attackPattern(this.x + this.width / 2); // Attack from current position
                     this.attackTimer = 0;
                 }
             }
@@ -117,7 +123,7 @@
         class PowerUp {
             constructor() {
                 this.x = Math.random() * (CANVAS_WIDTH - 20);
-                this.y = CANVAS_HEIGHT / 2;
+                this.y = CANVAS_HEIGHT / 2; // Static position
                 this.width = 20;
                 this.height = 20;
                 this.collected = false;
@@ -136,7 +142,7 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.speed = -5;
+                this.speed = -2; // Slower "truth" speed
             }
             update() {
                 this.y += this.speed;
@@ -157,13 +163,12 @@
             return binary;
         }
 
-        // Spawn Code Streams with Safe Path
+        // Spawn Code Streams with Random Maze Path
         function spawnCode() {
-            if (!bossActive && Math.random() < 0.2) { // Increased spawn rate
-                let safeColumn = Math.floor(player.x / COLUMN_WIDTH); // Ensure a safe path near player
+            if (!bossActive && Math.random() < 0.2) {
                 for (let i = 0; i < NUM_COLUMNS; i++) {
-                    if (i !== safeColumn && i !== safeColumn + 1 && Math.random() < 0.8) { // Gaps for safe path
-                        let x = i * COLUMN_WIDTH;
+                    if (Math.random() < 0.8) { // Random gaps for maze effect
+                        let x = i * COLUMN_WIDTH + Math.random() * (COLUMN_WIDTH - CODE_WIDTH);
                         codeStreams.push(new CodeStream(x, 2 + score / 1000, getRandomBinary()));
                     }
                 }
@@ -172,35 +177,12 @@
 
         // Spawn Boss
         function spawnBoss() {
-            if (!bossActive) {
-                if (score >= 1000 && !boss) {
-                    boss = new Boss('Politician', 5, () => {
-                        codeStreams.push(new CodeStream(boss.x + boss.width / 2, 3, getRandomBinary()));
-                    });
-                    powerUp = new PowerUp();
-                    bossActive = true;
-                } else if (score >= 3000 && !boss) {
-                    boss = new Boss('Media Mogul', 6, () => {
-                        codeStreams.push(new CodeStream(boss.x + boss.width / 4, 3, getRandomBinary()));
-                        codeStreams.push(new CodeStream(boss.x + 3 * boss.width / 4, 3, getRandomBinary()));
-                    });
-                    powerUp = new PowerUp();
-                    bossActive = true;
-                } else if (score >= 6000 && !boss) {
-                    boss = new Boss('Corporate Overlord', 7, () => {
-                        for (let i = 0; i < 3; i++) {
-                            codeStreams.push(new CodeStream(boss.x + i * 30, 3, getRandomBinary()));
-                        }
-                    });
-                    powerUp = new PowerUp();
-                    bossActive = true;
-                } else if (score >= 10000 && !boss) {
-                    boss = new Boss('AI Overmind', 8, () => {
-                        codeStreams.push(new CodeStream(boss.x + Math.random() * boss.width, 4, getRandomBinary()));
-                    });
-                    powerUp = new PowerUp();
-                    bossActive = true;
-                }
+            if (!bossActive && score >= bossTriggerScore) {
+                boss = new Boss('Politician', 5, (x) => {
+                    codeStreams.push(new CodeStream(x, 3, getRandomBinary()));
+                });
+                powerUp = new PowerUp();
+                bossActive = true;
             }
         }
 
@@ -275,7 +257,7 @@
                     codeStreams.splice(index, 1);
                 } else if (code.y > CANVAS_HEIGHT) {
                     codeStreams.splice(index, 1);
-                    score += 10;
+                    score += 1; // 1 point per dodged code
                 } else if (!abilities.codeCloak.active && code.x < player.x + PLAYER_WIDTH && code.x + CODE_WIDTH > player.x &&
                     code.y < player.y + PLAYER_HEIGHT && code.y + CODE_HEIGHT > player.y) {
                     codeStreams.splice(index, 1);
@@ -288,7 +270,6 @@
             spawnBoss();
             if (boss) {
                 boss.update();
-                if (powerUp && !powerUp.collected) powerUp.y += 1;
                 projectiles.forEach((proj, index) => {
                     proj.update();
                     if (proj.x > boss.x && proj.x < boss.x + boss.width && proj.y > boss.y && proj.y < boss.y + boss.height) {
@@ -335,12 +316,27 @@
             ctx.font = '20px Arial';
             ctx.fillText(`Score: ${score}`, 10, 30);
             ctx.fillText(`Lives: ${player.lives}`, 10, 60);
-            ctx.fillText('Abilities: 1:Grind 2:Immunity 3:Time 4:Cloak 5:Blast 6:Dash', 10, CANVAS_HEIGHT - 40);
-            let abilityStatus = '';
+
+            // Draw Instructions Vertically
+            ctx.save();
+            ctx.translate(10, 100);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Controls: Arrows to move', 0, 0);
+            ctx.fillText('Abilities: 1-Grind, 2-Immunity, 3-Time, 4-Cloak, 5-Blast, 6-Dash', 0, 20);
+            ctx.fillText('Space to shoot during boss', 0, 40);
+            ctx.restore();
+
+            // Draw Ability Recharge Bars
+            let barY = 100;
             for (let ability in abilities) {
-                abilityStatus += `${ability}: ${(abilities[ability].recharge / abilities[ability].maxRecharge * 100).toFixed(0)}% `;
+                let rechargePercent = abilities[ability].recharge / abilities[ability].maxRecharge;
+                ctx.fillStyle = '#0f0';
+                ctx.fillRect(10, barY, 100 * rechargePercent, 10);
+                ctx.strokeStyle = '#0f0';
+                ctx.strokeRect(10, barY, 100, 10);
+                ctx.fillText(ability, 120, barY + 10);
+                barY += 20;
             }
-            ctx.fillText(abilityStatus, 10, CANVAS_HEIGHT - 10);
 
             if (gameOver) {
                 ctx.fillStyle = '#f00';
