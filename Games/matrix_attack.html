@@ -66,22 +66,20 @@
         document.addEventListener('keydown', (e) => keys[e.code] = true);
         document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        // Code Stream Class (Single Character, Matrix-style with cascading brightness)
+        // Code Stream Class (Single Character, constant green color)
         class CodeStream {
             constructor(x, speed, char) {
                 this.x = x;
                 this.y = -CODE_HEIGHT;
                 this.speed = speed;
                 this.char = char; // Single random character (0 or 1), pre-assigned for connected paths
-                this.brightness = 100; // Start at full brightness
             }
             update() {
                 this.y += this.speed * (abilities.timeControl.active ? 0.25 : 0.5); // Slower fall speed
-                this.brightness = (this.brightness + Math.random() * 10 - 5 + 20) % 80 + 20; // Vary brightness (20-100, never fades completely)
             }
             draw() {
                 ctx.font = '12px MatrixFont'; // Mimic Matrix font style
-                ctx.fillStyle = `rgba(0, ${this.brightness}, 0, 1)`; // Green, varying brightness for cascading effect
+                ctx.fillStyle = '#0f0'; // Constant full green color, no brightness change
                 ctx.fillText(this.char, this.x + 400, this.y); // Offset for gameplay area
             }
         }
