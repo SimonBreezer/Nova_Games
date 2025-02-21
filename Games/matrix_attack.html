@@ -32,36 +32,36 @@
             columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
         }
         let abilities = [
-            { name: "Grind Mode", rechargeTime: 300, currentRecharge: 0 },
+            { name: "Autistic Focus Ray", rechargeTime: 350, currentRecharge: 0 },
             { name: "Matrix Immunity", rechargeTime: 400, currentRecharge: 0 },
-            { name: "Time Control", rechargeTime: 500, currentRecharge: 0 },
-            { name: "Binary Blast", rechargeTime: 350, currentRecharge: 0 },
-            { name: "Data Dash", rechargeTime: 250, currentRecharge: 0 }
+            { name: "Time Control", rechargeTime: 500, currentRecharge: 0 }
         ];
         let keys = {};
         let matrixImmunityActive = false;
         let matrixImmunityTimer = 0;
         let timeControlActive = false;
         let timeControlTimer = 0;
-        let binaryBlastActive = false;
-        let binaryBlastTimer = 0;
-        let dataDashActive = false;
-        let dataDashTimer = 0;
+        let autisticFocusRayActive = false;
+        let autisticFocusRayTimer = 0;
         let boss = null;
         let powerUp = null;
         let canShoot = false;
+        let shootText = "truth";
         let projectiles = [];
+        let bossProjectiles = [];
         let frameCount = 0;
+        let baseCodeSpeed = 0.5; // Base speed, doubles after each boss
+        let codeColor = '#0f0'; // Starts green, changes to blue, then red
+        let gameWon = false;
 
         // Keyboard event listeners
         window.addEventListener('keydown', (e) => { keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
         // Ability activation functions
-        function activateGrindMode() {
-            let clearLeft = player.x - 25;
-            let clearRight = player.x + 25;
-            codeCharacters = codeCharacters.filter((code) => code.x < clearLeft || code.x > clearRight);
+        function activateAutisticFocusRay() {
+            autisticFocusRayActive = true;
+            autisticFocusRayTimer = 60; // 1 second
         }
 
         function activateMatrixImmunity() {
@@ -74,59 +74,48 @@
             timeControlTimer = 240; // 4 seconds
         }
 
-        function activateBinaryBlast() {
-            binaryBlastActive = true;
-            binaryBlastTimer = 60; // 1 second
-        }
-
-        function activateDataDash() {
-            dataDashActive = true;
-            dataDashTimer = 120; // 2 seconds
-        }
-
         // Update game state
         function update() {
+            if (lives <= 0 || gameWon) return;
+
             frameCount++;
 
             // Player movement
-            let currentSpeed = dataDashActive ? 10 : 5;
-            if (keys['ArrowLeft']) player.x -= currentSpeed;
-            if (keys['ArrowRight']) player.x += currentSpeed;
-            if (keys['ArrowUp']) player.y -= currentSpeed;
-            if (keys['ArrowDown']) player.y += currentSpeed;
+            if (keys['ArrowLeft']) player.x -= player.speed;
+            if (keys['ArrowRight']) player.x += player.speed;
+            if (keys['ArrowUp']) player.y -= player.speed;
+            if (keys['ArrowDown']) player.y += player.speed;
 
             // Keep player within gameplay area (x: 400-1380, y: 0-580)
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
             // Spawn code streams (15% probability per column per frame)
-            columns.forEach((colX) => {
-                if (Math.random() < 0.15) {
-                    let char = Math.random() < 0.5 ? '0' : '1';
-                    codeCharacters.push({ x: colX, y: 0, char: char });
-                }
-            });
+            if (!gameWon) {
+                columns.forEach((colX) => {
+                    if (Math.random() < 0.15) {
+                        let char = Math.random() < 0.5 ? '0' : '1';
+                        codeCharacters.push({ x: colX, y: 0, char: char });
+                    }
+                });
+            }
 
             // Update code characters
-            let codeSpeed = timeControlActive ? 0.25 : 0.5;
+            let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
             codeCharacters.forEach((code, index) => {
                 code.y += codeSpeed;
-                if (!matrixImmunityActive && lives > 0) {
-                    // Collision with player
+                if (!matrixImmunityActive) {
                     if (code.y + 15 > player.y && code.y < player.y + player.height &&
                         code.x - 5 < player.x + player.width && code.x + 5 > player.x) {
                         lives--;
                         codeCharacters.splice(index, 1);
                         index--;
-                    }
-                    // Reaches bottom without hitting player
-                    else if (code.y >= 600) {
+                    } else if (code.y >= 600) {
                         score++;
                         codeCharacters.splice(index, 1);
                         index--;
                     }
                 } else if (code.y >= 600) {
-                    // Remove characters that reach bottom
                     codeCharacters.splice(index, 1);
                     index--;
                 }
@@ -141,7 +130,7 @@
 
             // Activate abilities
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
-                activateGrindMode();
+                activateAutisticFocusRay();
                 abilities[0].currentRecharge = 0;
             }
             if (keys['2'] && abilities[1].currentRecharge >= abilities[1].rechargeTime) {
@@ -151,14 +140,6 @@
             if (keys['3'] && abilities[2].currentRecharge >= abilities[2].rechargeTime) {
                 activateTimeControl();
                 abilities[2].currentRecharge = 0;
-            }
-            if (keys['4'] && abilities[3].currentRecharge >= abilities[3].rechargeTime) {
-                activateBinaryBlast();
-                abilities[3].currentRecharge = 0;
-            }
-            if (keys['5'] && abilities[4].currentRecharge >= abilities[4].rechargeTime) {
-                activateDataDash();
-                abilities[4].currentRecharge = 0;
             }
 
             // Handle active abilities
@@ -171,15 +152,11 @@
                 matrixImmunityTimer--;
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
-            if (binaryBlastActive) {
+            if (autisticFocusRayActive) {
                 codeCharacters = codeCharacters.filter((code) =>
                     !(code.y < player.y + 10 && Math.abs(code.x - (player.x + 10)) <= 50));
-                binaryBlastTimer--;
-                if (binaryBlastTimer <= 0) binaryBlastActive = false;
-            }
-            if (dataDashActive) {
-                dataDashTimer--;
-                if (dataDashTimer <= 0) dataDashActive = false;
+                autisticFocusRayTimer--;
+                if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
             }
             if (timeControlActive) {
                 timeControlTimer--;
@@ -187,54 +164,114 @@
             }
 
             // Boss logic
-            if (score >= 10000 && boss === null && lives > 0) {
-                boss = { x: 700, y: 50, width: 100, height: 100, vx: 2, health: 10 };
-                powerUp = {
-                    x: 410 + Math.random() * 980,
-                    y: 10 + Math.random() * 580,
-                    width: 20,
-                    height: 20
-                };
+            if (score >= 10000 && boss === null && !gameWon) {
+                boss = { name: "Politician", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 10, attackInterval: 60, attackSpeed: 2 };
+                spawnPowerUp("Keyboard");
+            } else if (score >= 50000 && boss === null && !gameWon) {
+                boss = { name: "Media Mogul", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 20, attackInterval: 30, attackSpeed: 4 };
+                spawnPowerUp("Keyboard");
+            } else if (score >= 200000 && boss === null && !gameWon) {
+                boss = { name: "Misaligned AI", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 40, attackInterval: 30 };
+                spawnPowerUp("Humanity");
             }
+
             if (boss !== null) {
                 boss.x += boss.vx;
                 if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
-                if (frameCount % 60 === 0) {
-                    let char = Math.random() < 0.5 ? '0' : '1';
-                    codeCharacters.push({ x: boss.x + 50, y: boss.y + 100, char: char });
+
+                // Boss attack
+                if (frameCount % boss.attackInterval === 0) {
+                    if (boss.name === "Misaligned AI") {
+                        // Spawn 3 fast code characters in random columns
+                        for (let i = 0; i < 3; i++) {
+                            let colIndex = Math.floor(Math.random() * columns.length);
+                            let colX = columns[colIndex];
+                            let char = Math.random() < 0.5 ? '0' : '1';
+                            codeCharacters.push({ x: colX, y: 0, char: char });
+                        }
+                    } else {
+                        // Propaganda attack towards player
+                        let dx = player.x + 10 - (boss.x + 50);
+                        let dy = player.y + 10 - (boss.y + 100);
+                        let dist = Math.hypot(dx, dy);
+                        let speed = boss.attackSpeed;
+                        let vx = (dx / dist) * speed;
+                        let vy = (dy / dist) * speed;
+                        bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
+                    }
                 }
+
+                // Update boss projectiles
+                bossProjectiles.forEach((proj, index) => {
+                    proj.x += proj.vx;
+                    proj.y += proj.vy;
+                    if (proj.y > 600 || proj.x < 400 || proj.x > 1400) {
+                        bossProjectiles.splice(index, 1);
+                        index--;
+                    } else if (!matrixImmunityActive &&
+                               proj.x > player.x && proj.x < player.x + player.width &&
+                               proj.y > player.y && proj.y < player.y + player.height) {
+                        lives--;
+                        bossProjectiles.splice(index, 1);
+                        index--;
+                    }
+                });
+
                 // Power-up collection
                 if (powerUp !== null && player.x < powerUp.x + powerUp.width &&
                     player.x + player.width > powerUp.x &&
                     player.y < powerUp.y + powerUp.height &&
                     player.y + player.height > powerUp.y) {
                     canShoot = true;
+                    shootText = powerUp.type === "Humanity" ? "free will" : "truth";
                     powerUp = null;
                 }
+
                 // Shoot projectiles
                 if (canShoot && keys[' '] && frameCount % 30 === 0) {
-                    projectiles.push({ x: player.x + 10, y: player.y });
+                    projectiles.push({ x: player.x + 10, y: player.y, text: shootText });
                 }
-                // Update projectiles
+
+                // Update player projectiles
                 projectiles.forEach((proj, index) => {
                     proj.y -= 2;
                     if (proj.y < 0) {
                         projectiles.splice(index, 1);
                         index--;
-                    } else if (boss !== null && proj.y < boss.y + boss.height &&
-                               proj.y > boss.y && proj.x > boss.x &&
-                               proj.x < boss.x + boss.width) {
+                    } else if (proj.y < boss.y + boss.height && proj.y > boss.y &&
+                               proj.x > boss.x && proj.x < boss.x + boss.width) {
                         boss.health--;
                         projectiles.splice(index, 1);
                         index--;
                         if (boss.health <= 0) {
+                            if (boss.name === "Politician") {
+                                codeColor = 'blue';
+                                baseCodeSpeed *= 2;
+                            } else if (boss.name === "Media Mogul") {
+                                codeColor = 'red';
+                                baseCodeSpeed *= 2;
+                            } else if (boss.name === "Misaligned AI") {
+                                gameWon = true;
+                                codeCharacters = [];
+                            }
                             boss = null;
                             canShoot = false;
                             projectiles = [];
+                            bossProjectiles = [];
                         }
                     }
                 });
             }
+        }
+
+        function spawnPowerUp(type) {
+            powerUp = {
+                x: 410 + Math.random() * 980,
+                y: 10 + Math.random() * 580,
+                width: 20,
+                height: 20,
+                type: type
+            };
         }
 
         // Render game
@@ -251,8 +288,8 @@
             ctx.fillRect(player.x, player.y, player.width, player.height);
 
             // Code characters
-            ctx.font = '12px Courier'; // Fallback for MatrixFont
-            ctx.fillStyle = '#0f0';
+            ctx.font = '12px Courier';
+            ctx.fillStyle = codeColor;
             codeCharacters.forEach((code) => {
                 ctx.fillText(code.char, code.x - 5, code.y);
             });
@@ -280,11 +317,9 @@
             let controlY = barY + 20;
             const controls = [
                 "Arrows to move",
-                "1-Grind_Mode",
+                "1-Autistic_Focus_Ray",
                 "2-Matrix_Immunity",
                 "3-Time_Control",
-                "4-Binary_Blast",
-                "5-Data_Dash",
                 "Space to shoot during boss"
             ];
             ctx.fillStyle = 'green';
@@ -299,7 +334,7 @@
                 ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
                 ctx.fillStyle = 'black';
                 ctx.font = '16px Arial';
-                ctx.fillText("Politician", boss.x + 10, boss.y + 20);
+                ctx.fillText(boss.name, boss.x + 10, boss.y + 20);
                 ctx.fillText(`HP: ${boss.health}`, boss.x + 10, boss.y + 40);
             }
 
@@ -309,14 +344,25 @@
                 ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
                 ctx.fillStyle = 'black';
                 ctx.font = '12px Arial';
-                ctx.fillText("Keyboard", powerUp.x + 2, powerUp.y + 15);
+                ctx.fillText(powerUp.type, powerUp.x + 2, powerUp.y + 15);
             }
 
-            // Projectiles
+            // Player projectiles
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             projectiles.forEach((proj) => {
-                ctx.fillText("truth", proj.x - 10, proj.y);
+                ctx.fillText(proj.text, proj.x - 10, proj.y);
+            });
+
+            // Boss projectiles (propaganda)
+            bossProjectiles.forEach((proj) => {
+                ctx.save();
+                ctx.translate(proj.x, proj.y);
+                ctx.rotate(frameCount * 0.1);
+                ctx.fillStyle = 'red';
+                ctx.font = '16px Arial';
+                ctx.fillText("propaganda", -30, 5);
+                ctx.restore();
             });
 
             // Game over
@@ -324,16 +370,23 @@
                 ctx.fillStyle = 'red';
                 ctx.font = '40px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText("GAME OVER - The Matrix Has You", 900, 300);
+                ctx.fillText("GAME OVER", 900, 280);
+                ctx.fillText("the matrix has you", 900, 320);
+            }
+
+            // Game won
+            if (gameWon) {
+                ctx.fillStyle = 'green';
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("Humanity is free and not for sale", 900, 300);
             }
             ctx.textAlign = 'left'; // Reset alignment
         }
 
         // Game loop
         function gameLoop() {
-            if (lives > 0 || boss !== null) {
-                update();
-            }
+            update();
             draw();
             requestAnimationFrame(gameLoop);
         }
