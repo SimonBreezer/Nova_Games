@@ -31,9 +31,16 @@
         for (let i = 0; i < 50; i++) {
             columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
         }
+        const bosses = [
+            { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000 },
+            { name: "Media Mogul", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 },
+            { name: "Misaligned AI", health: 20, attackInterval: 30, scoreThreshold: 200000 }
+        ];
+        let currentBossIndex = 0;
         let abilities = [
             { name: "Autistic Focus Ray", rechargeTime: 350, currentRecharge: 0 },
             { name: "Matrix Immunity", rechargeTime: 200, currentRecharge: 0 },
+            { name: "Tate Punch", rechargeTime: 400, currentRecharge: 0 },
             { name: "Time Control", rechargeTime: 500, currentRecharge: 0 }
         ];
         let keys = {};
@@ -53,7 +60,7 @@
         let baseCodeSpeed = 0.5; // Base speed, doubles after each boss
         let codeColor = '#0f0'; // Starts green, changes to blue, then red
         let gameWon = false;
-        let lastShotFrame = 0; // To track last shot for responsiveness
+        let lastShotFrame = 0;
 
         // Keyboard event listeners
         window.addEventListener('keydown', (e) => { keys[e.key] = true; });
@@ -62,7 +69,7 @@
         // Ability activation functions
         function activateAutisticFocusRay() {
             autisticFocusRayActive = true;
-            autisticFocusRayTimer = 60; // 1 second
+            autisticFocusRayTimer = 60; // 1 second at 60 fps
         }
 
         function activateMatrixImmunity() {
@@ -70,9 +77,35 @@
             matrixImmunityTimer = 90; // 1.5 seconds at 60 fps
         }
 
+        function activateTatePunch() {
+            const angleLeft = -Math.PI / 4; // -45 degrees
+            const angleRight = Math.PI / 4; // 45 degrees
+            const speed = 5;
+
+            const vxLeft = speed * Math.cos(angleLeft);
+            const vyLeft = speed * Math.sin(angleLeft);
+            const vxRight = speed * Math.cos(angleRight);
+            const vyRight = speed * Math.sin(angleRight);
+
+            projectiles.push({
+                x: player.x + player.width / 2,
+                y: player.y,
+                vx: vxLeft,
+                vy: vyLeft,
+                text: "Tate"
+            });
+            projectiles.push({
+                x: player.x + player.width / 2,
+                y: player.y,
+                vx: vxRight,
+                vy: vyRight,
+                text: "Tate"
+            });
+        }
+
         function activateTimeControl() {
             timeControlActive = true;
-            timeControlTimer = 240; // 4 seconds
+            timeControlTimer = 240; // 4 seconds at 60 fps
         }
 
         // Update game state
@@ -86,12 +119,10 @@
             if (keys['ArrowRight']) player.x += player.speed;
             if (keys['ArrowUp']) player.y -= player.speed;
             if (keys['ArrowDown']) player.y += player.speed;
-
-            // Keep player within gameplay area (x: 400-1380, y: 0-580)
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            // Spawn code streams (15% probability per column per frame)
+            // Spawn code streams
             if (!gameWon) {
                 columns.forEach((colX) => {
                     if (Math.random() < 0.15) {
@@ -110,15 +141,12 @@
                         code.x - 5 < player.x + player.width && code.x + 5 > player.x) {
                         lives--;
                         codeCharacters.splice(index, 1);
-                        index--;
                     } else if (code.y >= 600) {
                         score++;
                         codeCharacters.splice(index, 1);
-                        index--;
                     }
                 } else if (code.y >= 600) {
                     codeCharacters.splice(index, 1);
-                    index--;
                 }
             });
 
@@ -139,8 +167,12 @@
                 abilities[1].currentRecharge = 0;
             }
             if (keys['3'] && abilities[2].currentRecharge >= abilities[2].rechargeTime) {
-                activateTimeControl();
+                activateTatePunch();
                 abilities[2].currentRecharge = 0;
+            }
+            if (keys['4'] && abilities[3].currentRecharge >= abilities[3].rechargeTime) {
+                activateTimeControl();
+                abilities[3].currentRecharge = 0;
             }
 
             // Handle active abilities
@@ -148,14 +180,16 @@
                 codeCharacters = codeCharacters.filter((code) => {
                     let dx = code.x - (player.x + 10);
                     let dy = code.y - (player.y + 10);
-                    return Math.hypot(dx, dy) > 50;
+                    return Math.hypot(dx, dy) > 75; // Expanded radius
                 });
                 matrixImmunityTimer--;
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
             if (autisticFocusRayActive) {
+                const maxY = player.y - 100; // Reduced range
                 codeCharacters = codeCharacters.filter((code) =>
-                    !(code.y < player.y + 10 && Math.abs(code.x - (player.x + 10)) <= 50));
+                    !(code.y < player.y + 10 && code.y > maxY && Math.abs(code.x - (player.x + 10)) <= 50)
+                );
                 autisticFocusRayTimer--;
                 if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
             }
@@ -164,27 +198,31 @@
                 if (timeControlTimer <= 0) timeControlActive = false;
             }
 
-            // Boss logic
-            if (score >= 10000 && boss === null && !gameWon) {
-                boss = { name: "Politician", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 5, attackInterval: 60, attackSpeed: 1 };
-                spawnPowerUp("Keyboard");
-            } else if (score >= 50000 && boss === null && !gameWon) {
-                boss = { name: "Media Mogul", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 10, attackInterval: 30, attackSpeed: 2 };
-                spawnPowerUp("Keyboard");
-            } else if (score >= 200000 && boss === null && !gameWon) {
-                boss = { name: "Misaligned AI", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 20, attackInterval: 30 };
-                spawnPowerUp("Humanity");
+            // Boss spawning
+            if (currentBossIndex < bosses.length && score >= bosses[currentBossIndex].scoreThreshold && boss === null && !gameWon) {
+                const bossData = bosses[currentBossIndex];
+                boss = { 
+                    name: bossData.name, 
+                    x: 700, 
+                    y: 50, 
+                    width: 100, 
+                    height: 100, 
+                    vx: 2, 
+                    health: bossData.health, 
+                    attackInterval: bossData.attackInterval, 
+                    attackSpeed: bossData.attackSpeed 
+                };
+                spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
             }
 
+            // Boss logic
             if (boss !== null) {
                 boss.x += boss.vx;
-                // Boss bounces off walls
                 if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
 
                 // Boss attack
                 if (frameCount % boss.attackInterval === 0) {
                     if (boss.name === "Misaligned AI") {
-                        // Spawn 3 fast code characters in random columns
                         for (let i = 0; i < 3; i++) {
                             let colIndex = Math.floor(Math.random() * columns.length);
                             let colX = columns[colIndex];
@@ -192,33 +230,25 @@
                             codeCharacters.push({ x: colX, y: 0, char: char });
                         }
                     } else {
-                        // Propaganda attack towards player
-                        let dx = player.x + 10 - (boss.x + 50);
-                        let dy = player.y + 10 - (boss.y + 100);
-                        let dist = Math.hypot(dx, dy);
-                        if (dist > 0) { // Prevent division by zero
-                            let speed = boss.attackSpeed;
-                            let vx = (dx / dist) * speed;
-                            let vy = (dy / dist) * speed;
-                            bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
-                        }
+                        const angle = Math.random() * 2 * Math.PI;
+                        const speed = boss.attackSpeed;
+                        const vx = speed * Math.cos(angle);
+                        const vy = speed * Math.sin(angle);
+                        bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
                     }
                 }
 
-                // Update boss projectiles (no bouncing)
+                // Update boss projectiles
                 bossProjectiles.forEach((proj, index) => {
                     proj.x += proj.vx;
                     proj.y += proj.vy;
-                    // Remove projectiles when they exit gameplay area without bouncing
                     if (proj.y > 600 || proj.x < 400 || proj.x > 1400) {
                         bossProjectiles.splice(index, 1);
-                        index--;
                     } else if (!matrixImmunityActive &&
                                proj.x > player.x && proj.x < player.x + player.width &&
                                proj.y > player.y && proj.y < player.y + player.height) {
                         lives--;
                         bossProjectiles.splice(index, 1);
-                        index--;
                     }
                 });
 
@@ -232,57 +262,53 @@
                     powerUp = null;
                 }
 
-                // Shoot multiple projectiles during boss fights
+                // Player shooting
                 if (canShoot && keys[' '] && frameCount - lastShotFrame >= 10) {
                     lastShotFrame = frameCount;
-                    // Shoot 3 projectiles spread horizontally
-                    projectiles.push({ x: player.x - 10, y: player.y, text: shootText }); // Left
-                    projectiles.push({ x: player.x + 10, y: player.y, text: shootText }); // Center
-                    projectiles.push({ x: player.x + 30, y: player.y, text: shootText }); // Right
+                    projectiles.push({ x: player.x + 10, y: player.y, text: shootText });
                 }
 
-                // Update player projectiles only if boss exists
-                if (boss !== null) {
-                    projectiles.forEach((proj, index) => {
-                        proj.y -= 4;
-                        if (proj.y < 0) {
-                            projectiles.splice(index, 1);
-                            index--;
-                        } else if (boss !== null && proj.y < boss.y + boss.height && proj.y > boss.y &&
-                                   proj.x > boss.x && proj.x < boss.x + boss.width) {
-                            boss.health--;
-                            projectiles.splice(index, 1);
-                            index--;
-                            if (boss.health <= 0) {
-                                if (boss.name === "Politician") {
-                                    codeColor = 'blue';
-                                    baseCodeSpeed *= 2;
-                                } else if (boss.name === "Media Mogul") {
-                                    codeColor = 'red';
-                                    baseCodeSpeed *= 2;
-                                } else if (boss.name === "Misaligned AI") {
-                                    gameWon = true;
-                                    codeCharacters = [];
-                                }
-                                boss = null;
-                                canShoot = false;
-                                projectiles = [];
-                                bossProjectiles = [];
+                // Update projectiles
+                projectiles.forEach((proj, index) => {
+                    proj.x += proj.vx || 0;
+                    proj.y += proj.vy || -4;
+                    if (proj.y < 0 || proj.x < 400 || proj.x > 1400) {
+                        projectiles.splice(index, 1);
+                    } else if (boss !== null && proj.y < boss.y + boss.height && proj.y > boss &&
+                               proj.x > boss.x && proj.x < boss.x + boss.width) {
+                        boss.health--;
+                        projectiles.splice(index, 1);
+                        if (boss.health <= 0) {
+                            if (boss.name === "Politician") {
+                                codeColor = 'blue';
+                                baseCodeSpeed *= 2;
+                            } else if (boss.name === "Media Mogul") {
+                                codeColor = 'red';
+                                baseCodeSpeed *= 2;
+                            } else if (boss.name === "Misaligned AI") {
+                                gameWon = true;
+                                codeCharacters = [];
                             }
+                            currentBossIndex++;
+                            boss = null;
+                            canShoot = false;
+                            projectiles = [];
+                            bossProjectiles = [];
                         }
-                    });
-                } else {
-                    // Clear player projectiles if no boss is present
-                    projectiles = [];
-                }
+                    }
+                });
+            } else {
+                projectiles = [];
             }
         }
 
         function spawnPowerUp(type) {
+            ctx.font = '12px Arial';
+            const textWidth = ctx.measureText(type).width;
             powerUp = {
-                x: 410 + Math.random() * 980,
+                x: 410 + Math.random() * (980 - textWidth - 4),
                 y: 10 + Math.random() * 580,
-                width: 20,
+                width: textWidth + 4,
                 height: 20,
                 type: type
             };
@@ -313,7 +339,7 @@
             ctx.font = '20px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 10, 30);
-            ctx.fillText(`Lives: ${lives}`, 10, 60);
+            ctx.fillText(`HP: ${lives}`, 10, 60);
 
             // Ability recharge bars
             let barY = 100;
@@ -328,18 +354,18 @@
             });
 
             // Controls
-            let controlY = barY + 20;
             const controls = [
                 "Arrows to move",
                 "1-Autistic_Focus_Ray",
                 "2-Matrix_Immunity",
-                "3-Time_Control",
+                "3-Tate_Punch",
+                "4-Time_Control",
                 "Space to shoot during boss"
             ];
             ctx.fillStyle = 'green';
             ctx.font = '16px Arial';
             controls.forEach((text, index) => {
-                ctx.fillText(text, 10, controlY + index * 20);
+                ctx.fillText(text, 10, barY + 20 + index * 20);
             });
 
             // Boss
@@ -361,41 +387,34 @@
                 ctx.fillText(powerUp.type, powerUp.x + 2, powerUp.y + 15);
             }
 
-            // Player projectiles
+            // Projectiles
             ctx.fillStyle = 'white';
             ctx.font = '16px Arial';
             projectiles.forEach((proj) => {
                 ctx.fillText(proj.text, proj.x - 10, proj.y);
             });
 
-            // Boss projectiles (propaganda)
+            // Boss projectiles
+            ctx.fillStyle = 'red';
+            ctx.font = '16px Arial';
             bossProjectiles.forEach((proj) => {
-                ctx.save();
-                ctx.translate(proj.x, proj.y);
-                ctx.rotate(frameCount * 0.1);
-                ctx.fillStyle = 'red';
-                ctx.font = '16px Arial';
-                ctx.fillText("propaganda", -30, 5);
-                ctx.restore();
+                ctx.fillText("propaganda", proj.x - 30, proj.y);
             });
 
-            // Game over
+            // Game over or win
             if (lives <= 0) {
                 ctx.fillStyle = 'red';
                 ctx.font = '40px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText("GAME OVER", 900, 280);
                 ctx.fillText("the matrix has you", 900, 320);
-            }
-
-            // Game won
-            if (gameWon) {
+            } else if (gameWon) {
                 ctx.fillStyle = 'green';
                 ctx.font = '40px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText("Humanity is free and not for sale", 900, 300);
             }
-            ctx.textAlign = 'left'; // Reset alignment
+            ctx.textAlign = 'left';
         }
 
         // Game loop
