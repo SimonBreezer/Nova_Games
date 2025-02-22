@@ -33,7 +33,7 @@
         }
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000 },
-            { name: "Media Mogul", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 },
+            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 },
             { name: "Misaligned AI", health: 20, attackInterval: 30, scoreThreshold: 200000 }
         ];
         let currentBossIndex = 0;
@@ -92,14 +92,16 @@
                 y: player.y,
                 vx: vxLeft,
                 vy: vyLeft,
-                text: "Tate"
+                text: "Tate",
+                clearsCode: true
             });
             projectiles.push({
                 x: player.x + player.width / 2,
                 y: player.y,
                 vx: vxRight,
                 vy: vyRight,
-                text: "Tate"
+                text: "Tate",
+                clearsCode: true
             });
         }
 
@@ -186,7 +188,7 @@
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
             if (autisticFocusRayActive) {
-                const maxY = player.y - 100; // Reduced range
+                const maxY = player.y - 300; // Tripled range
                 codeCharacters = codeCharacters.filter((code) =>
                     !(code.y < player.y + 10 && code.y > maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
@@ -265,7 +267,7 @@
                 // Player shooting
                 if (canShoot && keys[' '] && frameCount - lastShotFrame >= 10) {
                     lastShotFrame = frameCount;
-                    projectiles.push({ x: player.x + 10, y: player.y, text: shootText });
+                    projectiles.push({ x: player.x + 10, y: player.y, text: shootText, clearsCode: false });
                 }
 
                 // Update projectiles
@@ -274,26 +276,38 @@
                     proj.y += proj.vy || -4;
                     if (proj.y < 0 || proj.x < 400 || proj.x > 1400) {
                         projectiles.splice(index, 1);
-                    } else if (boss !== null && proj.y < boss.y + boss.height && proj.y > boss &&
-                               proj.x > boss.x && proj.x < boss.x + boss.width) {
-                        boss.health--;
-                        projectiles.splice(index, 1);
-                        if (boss.health <= 0) {
-                            if (boss.name === "Politician") {
-                                codeColor = 'blue';
-                                baseCodeSpeed *= 2;
-                            } else if (boss.name === "Media Mogul") {
-                                codeColor = 'red';
-                                baseCodeSpeed *= 2;
-                            } else if (boss.name === "Misaligned AI") {
-                                gameWon = true;
-                                codeCharacters = [];
+                    } else {
+                        if (proj.clearsCode) {
+                            codeCharacters = codeCharacters.filter((code) => {
+                                const dx = code.x - proj.x;
+                                const dy = code.y - proj.y;
+                                if (Math.abs(dx) < 10 && Math.abs(dy) < 15) {
+                                    return false; // Remove code character
+                                }
+                                return true;
+                            });
+                        }
+                        if (boss !== null && proj.y < boss.y + boss.height && proj.y > boss.y &&
+                            proj.x > boss.x && proj.x < boss.x + boss.width) {
+                            boss.health--;
+                            projectiles.splice(index, 1);
+                            if (boss.health <= 0) {
+                                if (boss.name === "Politician") {
+                                    codeColor = 'blue';
+                                    baseCodeSpeed *= 2;
+                                } else if (boss.name === "Mainstream Media") {
+                                    codeColor = 'red';
+                                    baseCodeSpeed *= 2;
+                                } else if (boss.name === "Misaligned AI") {
+                                    gameWon = true;
+                                    codeCharacters = [];
+                                }
+                                currentBossIndex++;
+                                boss = null;
+                                canShoot = false;
+                                projectiles = [];
+                                bossProjectiles = [];
                             }
-                            currentBossIndex++;
-                            boss = null;
-                            canShoot = false;
-                            projectiles = [];
-                            bossProjectiles = [];
                         }
                     }
                 });
