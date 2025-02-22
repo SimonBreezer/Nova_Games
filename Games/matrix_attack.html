@@ -71,7 +71,7 @@
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: politicianImage },
             { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000, image: mainstreamMediaImage },
-            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000, image: misalignedAIImage }
+            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 5, scoreThreshold: 50000, image: misalignedAIImage }
         ];
         let currentBossIndex = 0;
         let abilities = [
@@ -282,12 +282,14 @@
 
                 if (frameCount % boss.attackInterval === 0) {
                     if (boss.name === "Misaligned AI") {
-                        const colIndex = Math.floor(Math.random() * columns.length);
-                        const colX = columns[colIndex];
-                        for (let i = 0; i < 10; i++) {
-                            const char = Math.random() < 0.5 ? '0' : '1';
-                            codeCharacters.push({ x: colX, y: -i * 15, char: char });
-                        }
+                        // Calculate direction to player
+                        const dx = (player.x + player.width / 2) - (boss.x + boss.width / 2);
+                        const dy = (player.y + player.height / 2) - (boss.y + boss.height / 2);
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const speed = boss.attackSpeed;
+                        const vx = (dx / dist) * speed;
+                        const vy = (dy / dist) * speed;
+                        bossProjectiles.push({ x: boss.x + boss.width / 2, y: boss.y + boss.height / 2, vx: vx, vy: vy, type: 'laser' });
                     } else {
                         const angle = Math.random() * 2 * Math.PI;
                         const speed = boss.attackSpeed;
@@ -509,10 +511,20 @@
                 ctx.fillText(proj.text, proj.x - 10, proj.y);
             });
 
-            ctx.fillStyle = 'red';
-            ctx.font = '16px Arial';
             bossProjectiles.forEach((proj) => {
-                ctx.fillText("propaganda", proj.x - 30, proj.y);
+                if (proj.type === 'laser') {
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(proj.x, proj.y);
+                    const trailLength = 15;
+                    ctx.lineTo(proj.x - proj.vx * trailLength, proj.y - proj.vy * trailLength);
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.font = '16px Arial';
+                    ctx.fillText("propaganda", proj.x - 30, proj.y);
+                }
             });
 
             if (lives <= 0) {
