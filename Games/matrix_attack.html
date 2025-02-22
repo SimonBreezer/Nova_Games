@@ -241,8 +241,8 @@
                     projectiles.push({ x: player.x + 30, y: player.y, text: shootText }); // Right
                 }
 
-                // Update player projectiles
-                if (boss !== null) { // Ensure boss is not null before checking collisions
+                // Update player projectiles only if boss exists
+                if (boss !== null) {
                     projectiles.forEach((proj, index) => {
                         proj.y -= 4;
                         if (proj.y < 0) {
@@ -272,7 +272,7 @@
                         }
                     });
                 } else {
-                    // If boss is null, remove all player projectiles to prevent errors
+                    // Clear player projectiles if no boss is present
                     projectiles = [];
                 }
             }
