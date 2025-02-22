@@ -115,9 +115,7 @@
             codeCharacters = codeCharacters.filter((code) => {
                 const dx = code.x - (player.x + 10);
                 const dy = code.y - player.y;
-                // Left diagonal (slope -1): y = -x + c, check within 200 pixels width (100 each side)
                 const leftDist = Math.abs(dy + dx); // Distance from line y = -x
-                // Right diagonal (slope 1): y = x + c, check within 200 pixels width (100 each side)
                 const rightDist = Math.abs(dy - dx); // Distance from line y = x
                 return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
             });
@@ -392,7 +390,7 @@
                 for (let i = 0; i < numImages; i++) {
                     const x = player.x + 10 - i * step; // Move left and up
                     const y = player.y - i * step;
-                    if (y >= player.y - 300 && x >= 400 && x <= 1400) { // Check boundaries
+                    if (y >= (player.y - pathLength) && y <= player.y && x >= 400 && x <= 1400) { // Corrected boundary
                         ctx.save();
                         ctx.translate(x, y);
                         ctx.rotate(-Math.PI / 4); // -45 degrees
@@ -405,7 +403,7 @@
                 for (let i = 0; i < numImages; i++) {
                     const x = player.x + 10 + i * step; // Move right and up
                     const y = player.y - i * step;
-                    if (y >= player.y - 300 && x >= 400 && x <= 1400) { // Check boundaries
+                    if (y >= (player.y - pathLength) && y <= player.y && x >= 400 && x <= 1400) { // Corrected boundary
                         ctx.save();
                         ctx.translate(x, y);
                         ctx.rotate(Math.PI / 4); // 45 degrees
