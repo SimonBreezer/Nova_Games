@@ -403,6 +403,16 @@
             // Draw player
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
+            // Draw white circle around player when Matrix Immunity is active
+            if (matrixImmunityActive) {
+                ctx.beginPath();
+                ctx.arc(player.x + player.width / 2, player.y + player.height / 2, 75, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.closePath();
+            }
+
             // Render Autistic Focus Ray laser effect
             if (autisticFocusRayActive) {
                 console.log("Drawing laser"); // Debug rendering
