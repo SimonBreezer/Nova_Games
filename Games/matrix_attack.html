@@ -79,9 +79,7 @@
         let timeControlTimer = 0;
         let autisticFocusRayActive = false;
         let autisticFocusRayTimer = 0;
-        let tatePunchActive = false;
-        let tatePunchTimer = 0;
-        let tatePunchOpacity = 0;
+        let tatePunchEntities = []; // Array for moving Tate Punch images
         let boss = null;
         let powerUp = null;
         let canShoot = false;
@@ -119,10 +117,21 @@
                 const rightDist = Math.abs(dy - dx); // Distance from line y = x
                 return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
             });
-            // Activate visual effect
-            tatePunchActive = true;
-            tatePunchTimer = 60; // 1 second at 60 FPS
-            tatePunchOpacity = 1; // Start fully opaque
+            // Create one moving image per diagonal
+            tatePunchEntities.push({
+                x: player.x + 10,
+                y: player.y,
+                vx: -5, // Left diagonal
+                vy: -5,
+                rotation: -Math.PI / 4 // -45 degrees
+            });
+            tatePunchEntities.push({
+                x: player.x + 10,
+                y: player.y,
+                vx: 5, // Right diagonal
+                vy: -5,
+                rotation: Math.PI / 4 // 45 degrees
+            });
         }
 
         function activateTimeControl() {
@@ -219,13 +228,16 @@
                 timeControlTimer--;
                 if (timeControlTimer <= 0) timeControlActive = false;
             }
-            if (tatePunchActive) {
-                tatePunchTimer--;
-                tatePunchOpacity = tatePunchTimer / 60; // Linear fade-out from 1 to 0
-                if (tatePunchTimer <= 0) {
-                    tatePunchActive = false;
-                }
-            }
+
+            // Update Tate Punch entities
+            tatePunchEntities.forEach(entity => {
+                entity.x += entity.vx;
+                entity.y += entity.vy;
+            });
+            // Remove entities that are off-screen
+            tatePunchEntities = tatePunchEntities.filter(entity =>
+                entity.y >= 0 && entity.x >= 400 && entity.x <= 1400
+            );
 
             // Boss spawning
             if (currentBossIndex < bosses.length && score >= bosses[currentBossIndex].scoreThreshold && boss === null && !gameWon) {
@@ -378,42 +390,14 @@
             // Player - Draw image instead of rectangle
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
-            // Tate Punch effect
-            if (tatePunchActive) {
-                const pathLength = 300; // Same as cleared path length
-                const step = 50; // Space between images, assuming Tate.png fits within this
-                const numImages = Math.ceil(pathLength / step);
-
-                ctx.globalAlpha = tatePunchOpacity; // Apply fading
-
-                // Left diagonal (-45 degrees)
-                for (let i = 0; i < numImages; i++) {
-                    const x = player.x + 10 - i * step; // Move left and up
-                    const y = player.y - i * step;
-                    if (y >= (player.y - pathLength) && y <= player.y && x >= 400 && x <= 1400) { // Corrected boundary
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.rotate(-Math.PI / 4); // -45 degrees
-                        ctx.drawImage(tateImage, -tateImage.width / 2, -tateImage.height / 2);
-                        ctx.restore();
-                    }
-                }
-
-                // Right diagonal (45 degrees)
-                for (let i = 0; i < numImages; i++) {
-                    const x = player.x + 10 + i * step; // Move right and up
-                    const y = player.y - i * step;
-                    if (y >= (player.y - pathLength) && y <= player.y && x >= 400 && x <= 1400) { // Corrected boundary
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.rotate(Math.PI / 4); // 45 degrees
-                        ctx.drawImage(tateImage, -tateImage.width / 2, -tateImage.height / 2);
-                        ctx.restore();
-                    }
-                }
-
-                ctx.globalAlpha = 1; // Reset opacity
-            }
+            // Render Tate Punch moving entities
+            tatePunchEntities.forEach(entity => {
+                ctx.save();
+                ctx.translate(entity.x, entity.y);
+                ctx.rotate(entity.rotation);
+                ctx.drawImage(tateImage, -tateImage.width / 2, -tateImage.height / 2);
+                ctx.restore();
+            });
 
             // Code characters
             ctx.font = '12px Courier';
