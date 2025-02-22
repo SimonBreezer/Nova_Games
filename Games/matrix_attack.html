@@ -38,13 +38,17 @@
         const keyboardImage = new Image();
         keyboardImage.src = 'Keyboard.png';
 
+        const tateImage = new Image();
+        tateImage.src = 'Tate.png';
+
         // Wait for all images to load
         const imageLoadPromises = [
             new Promise(resolve => playerImage.onload = resolve),
             new Promise(resolve => politicianImage.onload = resolve),
             new Promise(resolve => mainstreamMediaImage.onload = resolve),
             new Promise(resolve => misalignedAIImage.onload = resolve),
-            new Promise(resolve => keyboardImage.onload = resolve)
+            new Promise(resolve => keyboardImage.onload = resolve),
+            new Promise(resolve => tateImage.onload = resolve)
         ];
 
         // Game state variables
@@ -75,6 +79,9 @@
         let timeControlTimer = 0;
         let autisticFocusRayActive = false;
         let autisticFocusRayTimer = 0;
+        let tatePunchActive = false;
+        let tatePunchTimer = 0;
+        let tatePunchOpacity = 0;
         let boss = null;
         let powerUp = null;
         let canShoot = false;
@@ -114,6 +121,10 @@
                 const rightDist = Math.abs(dy - dx); // Distance from line y = x
                 return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
             });
+            // Activate visual effect
+            tatePunchActive = true;
+            tatePunchTimer = 60; // 1 second at 60 FPS
+            tatePunchOpacity = 1; // Start fully opaque
         }
 
         function activateTimeControl() {
@@ -209,6 +220,13 @@
             if (timeControlActive) {
                 timeControlTimer--;
                 if (timeControlTimer <= 0) timeControlActive = false;
+            }
+            if (tatePunchActive) {
+                tatePunchTimer--;
+                tatePunchOpacity = tatePunchTimer / 60; // Linear fade-out from 1 to 0
+                if (tatePunchTimer <= 0) {
+                    tatePunchActive = false;
+                }
             }
 
             // Boss spawning
@@ -361,6 +379,43 @@
 
             // Player - Draw image instead of rectangle
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+
+            // Tate Punch effect
+            if (tatePunchActive) {
+                const pathLength = 300; // Same as cleared path length
+                const step = 50; // Space between images, assuming Tate.png fits within this
+                const numImages = Math.ceil(pathLength / step);
+
+                ctx.globalAlpha = tatePunchOpacity; // Apply fading
+
+                // Left diagonal (-45 degrees)
+                for (let i = 0; i < numImages; i++) {
+                    const x = player.x + 10 - i * step; // Move left and up
+                    const y = player.y - i * step;
+                    if (y >= player.y - 300 && x >= 400 && x <= 1400) { // Check boundaries
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(-Math.PI / 4); // -45 degrees
+                        ctx.drawImage(tateImage, -tateImage.width / 2, -tateImage.height / 2);
+                        ctx.restore();
+                    }
+                }
+
+                // Right diagonal (45 degrees)
+                for (let i = 0; i < numImages; i++) {
+                    const x = player.x + 10 + i * step; // Move right and up
+                    const y = player.y - i * step;
+                    if (y >= player.y - 300 && x >= 400 && x <= 1400) { // Check boundaries
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(Math.PI / 4); // 45 degrees
+                        ctx.drawImage(tateImage, -tateImage.width / 2, -tateImage.height / 2);
+                        ctx.restore();
+                    }
+                }
+
+                ctx.globalAlpha = 1; // Reset opacity
+            }
 
             // Code characters
             ctx.font = '12px Courier';
