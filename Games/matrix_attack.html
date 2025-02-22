@@ -34,7 +34,7 @@
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000 },
             { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000 },
-            { name: "Misaligned AI", health: 20, attackInterval: 30, scoreThreshold: 50000 }
+            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 }
         ];
         let currentBossIndex = 0;
         let abilities = [
@@ -83,11 +83,11 @@
             codeCharacters = codeCharacters.filter((code) => {
                 const dx = code.x - (player.x + 10);
                 const dy = code.y - player.y;
-                // Left diagonal (slope -1): y = -x + c, check within 50 pixels width
+                // Left diagonal (slope -1): y = -x + c, check within 200 pixels width (100 each side)
                 const leftDist = Math.abs(dy + dx); // Distance from line y = -x
-                // Right diagonal (slope 1): y = x + c, check within 50 pixels width
+                // Right diagonal (slope 1): y = x + c, check within 200 pixels width (100 each side)
                 const rightDist = Math.abs(dy - dx); // Distance from line y = x
-                return !(code.y <= player.y && code.y >= maxY && (leftDist <= 25 || rightDist <= 25));
+                return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
             });
         }
 
@@ -168,13 +168,13 @@
                 codeCharacters = codeCharacters.filter((code) => {
                     let dx = code.x - (player.x + 10);
                     let dy = code.y - (player.y + 10);
-                    return Math.hypot(dx, dy) > 75; // Expanded radius
+                    return Math.hypot(dx, dy) > 75;
                 });
                 matrixImmunityTimer--;
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
             if (autisticFocusRayActive) {
-                const maxY = player.y - 300; // Tripled range
+                const maxY = player.y - 300;
                 codeCharacters = codeCharacters.filter((code) =>
                     !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
@@ -211,11 +211,11 @@
                 // Boss attack
                 if (frameCount % boss.attackInterval === 0) {
                     if (boss.name === "Misaligned AI") {
-                        for (let i = 0; i < 3; i++) {
-                            let colIndex = Math.floor(Math.random() * columns.length);
-                            let colX = columns[colIndex];
-                            let char = Math.random() < 0.5 ? '0' : '1';
-                            codeCharacters.push({ x: colX, y: 0, char: char });
+                        const colIndex = Math.floor(Math.random() * columns.length);
+                        const colX = columns[colIndex];
+                        for (let i = 0; i < 10; i++) {
+                            const char = Math.random() < 0.5 ? '0' : '1';
+                            codeCharacters.push({ x: colX, y: -i * 15, char: char });
                         }
                     } else {
                         const angle = Math.random() * 2 * Math.PI;
