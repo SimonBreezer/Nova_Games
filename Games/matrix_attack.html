@@ -476,12 +476,9 @@
                 ctx.fillText(text, 10, barY + 20 + index * 20);
             });
 
+            // Draw boss image only, without name and HP text
             if (boss !== null) {
                 ctx.drawImage(boss.image, boss.x, boss.y, boss.width, boss.height);
-                ctx.fillStyle = 'black';
-                ctx.font = '16px Arial';
-                ctx.fillText(boss.name, boss.x + 10, boss.y + 20);
-                ctx.fillText(`HP: ${boss.health}`, boss.x + 10, boss.y + 40);
             }
 
             if (powerUp !== null) {
