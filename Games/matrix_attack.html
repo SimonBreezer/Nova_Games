@@ -87,8 +87,8 @@
         let timeControlTimer = 0;
         let autisticFocusRayActive = false;
         let autisticFocusRayTimer = 0;
-        let autisticFocusRayOpacity = 0; // For laser fading effect
-        let tatePunchEntities = []; // Array for moving Tate Punch images
+        let autisticFocusRayOpacity = 0;
+        let tatePunchEntities = [];
         let boss = null;
         let powerUp = null;
         let canShoot = false;
@@ -96,13 +96,13 @@
         let projectiles = [];
         let bossProjectiles = [];
         let frameCount = 0;
-        let baseCodeSpeed = 0.5; // Base speed, doubles after each boss
-        let codeColor = '#0f0'; // Starts green, changes to blue, then red
+        let baseCodeSpeed = 0.5;
+        let codeColor = '#0f0';
         let gameWon = false;
         let lastShotFrame = 0;
-        let musicStarted = false; // Flag to track if music has started
+        let musicStarted = false;
 
-        // Function to start music after user interaction
+        // Start music after user interaction
         function startMusic() {
             if (!musicStarted) {
                 gameMusic.play().catch(error => {
@@ -112,24 +112,24 @@
             }
         }
 
-        // Event listeners for user interaction to start music
         window.addEventListener('keydown', startMusic);
         window.addEventListener('click', startMusic);
 
-        // Keyboard event listeners for game controls
+        // Keyboard controls
         window.addEventListener('keydown', (e) => { keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
         // Ability activation functions
         function activateAutisticFocusRay() {
+            console.log("Autistic Focus Ray activated"); // Debug activation
             autisticFocusRayActive = true;
             autisticFocusRayTimer = 60; // 1 second at 60 fps
-            autisticFocusRayOpacity = 1; // Start laser fully opaque
+            autisticFocusRayOpacity = 1;
         }
 
         function activateMatrixImmunity() {
             matrixImmunityActive = true;
-            matrixImmunityTimer = 90; // 1.5 seconds at 60 fps
+            matrixImmunityTimer = 90;
         }
 
         function activateTatePunch() {
@@ -159,7 +159,7 @@
 
         function activateTimeControl() {
             timeControlActive = true;
-            timeControlTimer = 240; // 4 seconds at 60 fps
+            timeControlTimer = 240;
         }
 
         // Update game state
@@ -211,6 +211,7 @@
             });
 
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
+                console.log("Activating Autistic Focus Ray"); // Debug key press
                 activateAutisticFocusRay();
                 abilities[0].currentRecharge = 0;
             }
@@ -242,7 +243,7 @@
                     !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
                 autisticFocusRayTimer--;
-                autisticFocusRayOpacity = autisticFocusRayTimer / 60; // Fade out over 1 second
+                autisticFocusRayOpacity = autisticFocusRayTimer / 60;
                 if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
             }
             if (timeControlActive) {
@@ -394,28 +395,40 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Draw gameplay area border
             ctx.strokeStyle = 'green';
             ctx.lineWidth = 2;
             ctx.strokeRect(400, 0, 1000, 600);
 
+            // Draw player
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
             // Render Autistic Focus Ray laser effect
             if (autisticFocusRayActive) {
+                console.log("Drawing laser"); // Debug rendering
+                const topY = Math.max(0, player.y - 300); // Ensure it doesn't go off-screen
+                const leftX = player.x - 40; // Match clearing area (player.x + 10 - 50)
+                const width = 100; // Matches 100-pixel clearing width
+                const height = player.y - topY;
+
+                // Save context state
+                ctx.save();
                 ctx.globalAlpha = autisticFocusRayOpacity;
-                const gradient = ctx.createLinearGradient(player.x + 10, player.y, player.x + 10, player.y - 300);
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)'); // Bright red at player
-                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)'); // Fades to transparent at top
-                ctx.beginPath();
-                ctx.moveTo(player.x + 10, player.y);
-                ctx.lineTo(player.x + 10, player.y - 300);
-                ctx.strokeStyle = gradient;
-                ctx.lineWidth = 10; // Laser thickness
-                ctx.stroke();
-                ctx.globalAlpha = 1; // Reset transparency
+
+                // Create vertical gradient
+                const gradient = ctx.createLinearGradient(leftX + width / 2, player.y, leftX + width / 2, topY);
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)'); // Solid red at bottom
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)'); // Transparent at top
+
+                // Draw the laser as a filled rectangle
+                ctx.fillStyle = gradient;
+                ctx.fillRect(leftX, topY, width, height);
+
+                // Restore context state
+                ctx.restore();
             }
 
-            // Render Tate Punch moving entities
+            // Render Tate Punch entities
             tatePunchEntities.forEach(entity => {
                 ctx.save();
                 ctx.translate(entity.x, entity.y);
@@ -424,12 +437,14 @@
                 ctx.restore();
             });
 
+            // Draw code characters
             ctx.font = '12px Courier';
             ctx.fillStyle = codeColor;
             codeCharacters.forEach((code) => {
                 ctx.fillText(code.char, code.x - 5, code.y);
             });
 
+            // Draw HUD
             ctx.fillStyle = 'green';
             ctx.font = '20px Arial';
             ctx.textAlign = 'left';
@@ -520,7 +535,7 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Start the game loop after all images are loaded
+        // Start game after images load
         Promise.all(imageLoadPromises).then(() => {
             gameLoop();
         }).catch(error => {
