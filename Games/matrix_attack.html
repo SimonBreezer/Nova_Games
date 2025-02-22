@@ -484,10 +484,15 @@
                 ctx.fillText("GAME OVER", 900, 280);
                 ctx.fillText("the matrix has you", 900, 320);
             } else if (gameWon) {
-                ctx.fillStyle = 'green';
-                ctx.font = '40px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText("Humanity is free and not for sale", 900, 300);
+                const currentTime = Date.now();
+                const T_cycle_ms = (60 / 130) * 1000; // ~461.538 ms per cycle (130 BPM)
+                const fractional = (currentTime % T_cycle_ms) / T_cycle_ms;
+                if (fractional < 0.5) { // Visible for half the cycle
+                    ctx.fillStyle = 'white'; // Changed to white
+                    ctx.font = '60px Arial'; // Increased to 60px
+                    ctx.textAlign = 'center';
+                    ctx.fillText("Humanity is free and not for sale", 900, 300);
+                }
             }
             ctx.textAlign = 'left';
         }
