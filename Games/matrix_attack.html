@@ -17,10 +17,18 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="1400" height="600"></canvas>
+    <!-- Audio element for background music -->
+    <audio id="gameMusic" loop>
+        <source src="Matrix_attack_music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
     <script>
         // Get canvas and context
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // Get audio element
+        const gameMusic = document.getElementById('gameMusic');
 
         // Load images
         const playerImage = new Image();
@@ -91,8 +99,21 @@
         let codeColor = '#0f0'; // Starts green, changes to blue, then red
         let gameWon = false;
         let lastShotFrame = 0;
+        let musicStarted = false; // Flag to track if music has started
 
-        // Keyboard event listeners
+        // Function to start music after user interaction
+        function startMusic() {
+            if (!musicStarted) {
+                gameMusic.play();
+                musicStarted = true;
+            }
+        }
+
+        // Event listeners for user interaction to start music
+        window.addEventListener('keydown', startMusic);
+        window.addEventListener('click', startMusic);
+
+        // Keyboard event listeners for game controls
         window.addEventListener('keydown', (e) => { keys[e.key] = true; });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
@@ -141,7 +162,10 @@
 
         // Update game state
         function update() {
-            if (lives <= 0 || gameWon) return;
+            if (lives <= 0 || gameWon) {
+                gameMusic.pause(); // Stop music when game ends
+                return;
+            }
 
             frameCount++;
 
