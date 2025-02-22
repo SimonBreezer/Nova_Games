@@ -22,6 +22,31 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Load images
+        const playerImage = new Image();
+        playerImage.src = 'Player.png';
+
+        const politicianImage = new Image();
+        politicianImage.src = 'Politician.jpg';
+
+        const mainstreamMediaImage = new Image();
+        mainstreamMediaImage.src = 'MainstreamMedia.jpg';
+
+        const misalignedAIImage = new Image();
+        misalignedAIImage.src = 'MisalignedAI.png';
+
+        const keyboardImage = new Image();
+        keyboardImage.src = 'Keyboard.png';
+
+        // Wait for all images to load
+        const imageLoadPromises = [
+            new Promise(resolve => playerImage.onload = resolve),
+            new Promise(resolve => politicianImage.onload = resolve),
+            new Promise(resolve => mainstreamMediaImage.onload = resolve),
+            new Promise(resolve => misalignedAIImage.onload = resolve),
+            new Promise(resolve => keyboardImage.onload = resolve)
+        ];
+
         // Game state variables
         let score = 0;
         let lives = 50;
@@ -32,9 +57,9 @@
             columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
         }
         const bosses = [
-            { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000 },
-            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000 },
-            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 }
+            { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: politicianImage },
+            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000, image: mainstreamMediaImage },
+            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000, image: misalignedAIImage }
         ];
         let currentBossIndex = 0;
         let abilities = [
@@ -198,7 +223,8 @@
                     vx: 2, 
                     health: bossData.health, 
                     attackInterval: bossData.attackInterval, 
-                    attackSpeed: bossData.attackSpeed 
+                    attackSpeed: bossData.attackSpeed,
+                    image: bossData.image
                 };
                 spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
             }
@@ -303,15 +329,25 @@
         }
 
         function spawnPowerUp(type) {
-            ctx.font = '12px Arial';
-            const textWidth = ctx.measureText(type).width;
-            powerUp = {
-                x: 410 + Math.random() * (980 - textWidth - 4),
-                y: 10 + Math.random() * 580,
-                width: textWidth + 4,
-                height: 20,
-                type: type
-            };
+            if (type === "Keyboard") {
+                powerUp = {
+                    x: 410 + Math.random() * 930, // Adjusted for image width
+                    y: 10 + Math.random() * 580,
+                    width: 50, // Assuming keyboard image is 50px wide
+                    height: 20, // Assuming keyboard image is 20px tall
+                    type: type
+                };
+            } else {
+                ctx.font = '12px Arial';
+                const textWidth = ctx.measureText(type).width;
+                powerUp = {
+                    x: 410 + Math.random() * (980 - textWidth - 4),
+                    y: 10 + Math.random() * 580,
+                    width: textWidth + 4,
+                    height: 20,
+                    type: type
+                };
+            }
         }
 
         // Render game
@@ -323,9 +359,8 @@
             ctx.lineWidth = 2;
             ctx.strokeRect(400, 0, 1000, 600);
 
-            // Player
-            ctx.fillStyle = 'green';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // Player - Draw image instead of rectangle
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
             // Code characters
             ctx.font = '12px Courier';
@@ -368,10 +403,9 @@
                 ctx.fillText(text, 10, barY + 20 + index * 20);
             });
 
-            // Boss
+            // Boss - Draw specific image based on boss name
             if (boss !== null) {
-                ctx.fillStyle = 'green';
-                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                ctx.drawImage(boss.image, boss.x, boss.y, boss.width, boss.height);
                 ctx.fillStyle = 'black';
                 ctx.font = '16px Arial';
                 ctx.fillText(boss.name, boss.x + 10, boss.y + 20);
@@ -380,11 +414,15 @@
 
             // Power-up
             if (powerUp !== null) {
-                ctx.fillStyle = 'yellow';
-                ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
-                ctx.fillStyle = 'black';
-                ctx.font = '12px Arial';
-                ctx.fillText(powerUp.type, powerUp.x + 2, powerUp.y + 15);
+                if (powerUp.type === "Keyboard") {
+                    ctx.drawImage(keyboardImage, powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                } else {
+                    ctx.fillStyle = 'yellow';
+                    ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(powerUp.type, powerUp.x + 2, powerUp.y + 15);
+                }
             }
 
             // Projectiles
@@ -409,7 +447,7 @@
                 ctx.fillText("GAME OVER", 900, 280);
                 ctx.fillText("the matrix has you", 900, 320);
             } else if (gameWon) {
-                ctx.fillStyle = 'white';
+                ctx.fillStyle = 'green';
                 ctx.font = '40px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText("Humanity is free and not for sale", 900, 300);
@@ -423,7 +461,13 @@
             draw();
             requestAnimationFrame(gameLoop);
         }
-        gameLoop();
+
+        // Start the game loop after all images are loaded
+        Promise.all(imageLoadPromises).then(() => {
+            gameLoop();
+        }).catch(error => {
+            console.error('Failed to load images:', error);
+        });
     </script>
 </body>
 </html>
