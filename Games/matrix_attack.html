@@ -248,7 +248,7 @@
                         if (proj.y < 0) {
                             projectiles.splice(index, 1);
                             index--;
-                        } else if (proj.y < boss.y + boss.height && proj.y > boss.y &&
+                        } else if (boss !== null && proj.y < boss.y + boss.height && proj.y > boss.y &&
                                    proj.x > boss.x && proj.x < boss.x + boss.width) {
                             boss.health--;
                             projectiles.splice(index, 1);
