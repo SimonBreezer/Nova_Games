@@ -32,7 +32,7 @@
             columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
         }
         let abilities = [
-            { name: "Autistic Focus Ray", rechargeTime: 175, currentRecharge: 0 }, // Reduced from 350 to 175
+            { name: "Autistic Focus Ray", rechargeTime: 350, currentRecharge: 0 },
             { name: "Matrix Immunity", rechargeTime: 200, currentRecharge: 0 },
             { name: "Time Control", rechargeTime: 500, currentRecharge: 0 }
         ];
@@ -166,13 +166,13 @@
 
             // Boss logic
             if (score >= 10000 && boss === null && !gameWon) {
-                boss = { name: "Politician", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 15, attackInterval: 60, attackSpeed: 1 }; // Tripled from 5 to 15
+                boss = { name: "Politician", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 5, attackInterval: 60, attackSpeed: 1 };
                 spawnPowerUp("Keyboard");
             } else if (score >= 50000 && boss === null && !gameWon) {
-                boss = { name: "Media Mogul", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 30, attackInterval: 30, attackSpeed: 2 }; // Tripled from 10 to 30
+                boss = { name: "Media Mogul", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 10, attackInterval: 30, attackSpeed: 2 };
                 spawnPowerUp("Keyboard");
             } else if (score >= 200000 && boss === null && !gameWon) {
-                boss = { name: "Misaligned AI", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 60, attackInterval: 30 }; // Tripled from 20 to 60
+                boss = { name: "Misaligned AI", x: 700, y: 50, width: 100, height: 100, vx: 2, health: 20, attackInterval: 30 };
                 spawnPowerUp("Humanity");
             }
 
@@ -196,10 +196,12 @@
                         let dx = player.x + 10 - (boss.x + 50);
                         let dy = player.y + 10 - (boss.y + 100);
                         let dist = Math.hypot(dx, dy);
-                        let speed = boss.attackSpeed;
-                        let vx = (dx / dist) * speed;
-                        let vy = (dy / dist) * speed;
-                        bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
+                        if (dist > 0) { // Prevent division by zero
+                            let speed = boss.attackSpeed;
+                            let vx = (dx / dist) * speed;
+                            let vy = (dy / dist) * speed;
+                            bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
+                        }
                     }
                 }
 
@@ -240,34 +242,39 @@
                 }
 
                 // Update player projectiles
-                projectiles.forEach((proj, index) => {
-                    proj.y -= 4;
-                    if (proj.y < 0) {
-                        projectiles.splice(index, 1);
-                        index--;
-                    } else if (proj.y < boss.y + boss.height && proj.y > boss.y &&
-                               proj.x > boss.x && proj.x < boss.x + boss.width) {
-                        boss.health--;
-                        projectiles.splice(index, 1);
-                        index--;
-                        if (boss.health <= 0) {
-                            if (boss.name === "Politician") {
-                                codeColor = 'blue';
-                                baseCodeSpeed *= 2;
-                            } else if (boss.name === "Media Mogul") {
-                                codeColor = 'red';
-                                baseCodeSpeed *= 2;
-                            } else if (boss.name === "Misaligned AI") {
-                                gameWon = true;
-                                codeCharacters = [];
+                if (boss !== null) { // Ensure boss is not null before checking collisions
+                    projectiles.forEach((proj, index) => {
+                        proj.y -= 4;
+                        if (proj.y < 0) {
+                            projectiles.splice(index, 1);
+                            index--;
+                        } else if (proj.y < boss.y + boss.height && proj.y > boss.y &&
+                                   proj.x > boss.x && proj.x < boss.x + boss.width) {
+                            boss.health--;
+                            projectiles.splice(index, 1);
+                            index--;
+                            if (boss.health <= 0) {
+                                if (boss.name === "Politician") {
+                                    codeColor = 'blue';
+                                    baseCodeSpeed *= 2;
+                                } else if (boss.name === "Media Mogul") {
+                                    codeColor = 'red';
+                                    baseCodeSpeed *= 2;
+                                } else if (boss.name === "Misaligned AI") {
+                                    gameWon = true;
+                                    codeCharacters = [];
+                                }
+                                boss = null;
+                                canShoot = false;
+                                projectiles = [];
+                                bossProjectiles = [];
                             }
-                            boss = null;
-                            canShoot = false;
-                            projectiles = [];
-                            bossProjectiles = [];
                         }
-                    }
-                });
+                    });
+                } else {
+                    // If boss is null, remove all player projectiles to prevent errors
+                    projectiles = [];
+                }
             }
         }
 
