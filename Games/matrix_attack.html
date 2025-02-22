@@ -87,6 +87,7 @@
         let timeControlTimer = 0;
         let autisticFocusRayActive = false;
         let autisticFocusRayTimer = 0;
+        let autisticFocusRayOpacity = 0; // For laser fading effect
         let tatePunchEntities = []; // Array for moving Tate Punch images
         let boss = null;
         let powerUp = null;
@@ -104,7 +105,9 @@
         // Function to start music after user interaction
         function startMusic() {
             if (!musicStarted) {
-                gameMusic.play();
+                gameMusic.play().catch(error => {
+                    console.error("Error playing music:", error);
+                });
                 musicStarted = true;
             }
         }
@@ -121,6 +124,7 @@
         function activateAutisticFocusRay() {
             autisticFocusRayActive = true;
             autisticFocusRayTimer = 60; // 1 second at 60 fps
+            autisticFocusRayOpacity = 1; // Start laser fully opaque
         }
 
         function activateMatrixImmunity() {
@@ -129,29 +133,27 @@
         }
 
         function activateTatePunch() {
-            // Tate Punch clears diagonal paths at 45 degrees
-            const maxY = player.y - 300; // Same length as Autistic Focus Ray
+            const maxY = player.y - 300;
             codeCharacters = codeCharacters.filter((code) => {
                 const dx = code.x - (player.x + 10);
                 const dy = code.y - player.y;
-                const leftDist = Math.abs(dy + dx); // Distance from line y = -x
-                const rightDist = Math.abs(dy - dx); // Distance from line y = x
+                const leftDist = Math.abs(dy + dx);
+                const rightDist = Math.abs(dy - dx);
                 return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
             });
-            // Create one moving image per diagonal
             tatePunchEntities.push({
                 x: player.x + 10,
                 y: player.y,
-                vx: -5, // Left diagonal
+                vx: -5,
                 vy: -5,
-                rotation: -Math.PI / 4 // -45 degrees
+                rotation: -Math.PI / 4
             });
             tatePunchEntities.push({
                 x: player.x + 10,
                 y: player.y,
-                vx: 5, // Right diagonal
+                vx: 5,
                 vy: -5,
-                rotation: Math.PI / 4 // 45 degrees
+                rotation: Math.PI / 4
             });
         }
 
@@ -163,13 +165,12 @@
         // Update game state
         function update() {
             if (lives <= 0 || gameWon) {
-                gameMusic.pause(); // Stop music when game ends
+                gameMusic.pause();
                 return;
             }
 
             frameCount++;
 
-            // Player movement
             if (keys['ArrowLeft']) player.x -= player.speed;
             if (keys['ArrowRight']) player.x += player.speed;
             if (keys['ArrowUp']) player.y -= player.speed;
@@ -177,7 +178,6 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            // Spawn code streams
             if (!gameWon) {
                 columns.forEach((colX) => {
                     if (Math.random() < 0.15) {
@@ -187,7 +187,6 @@
                 });
             }
 
-            // Update code characters
             let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
             codeCharacters.forEach((code, index) => {
                 code.y += codeSpeed;
@@ -205,14 +204,12 @@
                 }
             });
 
-            // Update abilities recharge
             abilities.forEach((ability) => {
                 if (ability.currentRecharge < ability.rechargeTime) {
                     ability.currentRecharge++;
                 }
             });
 
-            // Activate abilities
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
                 activateAutisticFocusRay();
                 abilities[0].currentRecharge = 0;
@@ -230,7 +227,6 @@
                 abilities[3].currentRecharge = 0;
             }
 
-            // Handle active abilities
             if (matrixImmunityActive) {
                 codeCharacters = codeCharacters.filter((code) => {
                     let dx = code.x - (player.x + 10);
@@ -246,6 +242,7 @@
                     !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
                 autisticFocusRayTimer--;
+                autisticFocusRayOpacity = autisticFocusRayTimer / 60; // Fade out over 1 second
                 if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
             }
             if (timeControlActive) {
@@ -253,17 +250,14 @@
                 if (timeControlTimer <= 0) timeControlActive = false;
             }
 
-            // Update Tate Punch entities
             tatePunchEntities.forEach(entity => {
                 entity.x += entity.vx;
                 entity.y += entity.vy;
             });
-            // Remove entities that are off-screen
             tatePunchEntities = tatePunchEntities.filter(entity =>
                 entity.y >= 0 && entity.x >= 400 && entity.x <= 1400
             );
 
-            // Boss spawning
             if (currentBossIndex < bosses.length && score >= bosses[currentBossIndex].scoreThreshold && boss === null && !gameWon) {
                 const bossData = bosses[currentBossIndex];
                 boss = { 
@@ -281,12 +275,10 @@
                 spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
             }
 
-            // Boss logic
             if (boss !== null) {
                 boss.x += boss.vx;
                 if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
 
-                // Boss attack
                 if (frameCount % boss.attackInterval === 0) {
                     if (boss.name === "Misaligned AI") {
                         const colIndex = Math.floor(Math.random() * columns.length);
@@ -304,7 +296,6 @@
                     }
                 }
 
-                // Update boss projectiles
                 bossProjectiles.forEach((proj, index) => {
                     proj.x += proj.vx;
                     proj.y += proj.vy;
@@ -318,7 +309,6 @@
                     }
                 });
 
-                // Power-up collection
                 if (powerUp !== null && player.x < powerUp.x + powerUp.width &&
                     player.x + player.width > powerUp.x &&
                     player.y < powerUp.y + powerUp.height &&
@@ -328,13 +318,11 @@
                     powerUp = null;
                 }
 
-                // Player shooting
                 if (canShoot && keys[' '] && frameCount - lastShotFrame >= 10) {
                     lastShotFrame = frameCount;
                     projectiles.push({ x: player.x + 10, y: player.y, text: shootText, clearsCode: false });
                 }
 
-                // Update projectiles
                 projectiles.forEach((proj, index) => {
                     proj.x += proj.vx || 0;
                     proj.y += proj.vy || -4;
@@ -346,7 +334,7 @@
                                 const dx = code.x - proj.x;
                                 const dy = code.y - proj.y;
                                 if (Math.abs(dx) < 10 && Math.abs(dy) < 15) {
-                                    return false; // Remove code character
+                                    return false;
                                 }
                                 return true;
                             });
@@ -383,10 +371,10 @@
         function spawnPowerUp(type) {
             if (type === "Keyboard") {
                 powerUp = {
-                    x: 410 + Math.random() * 930, // Adjusted for image width
+                    x: 410 + Math.random() * 930,
                     y: 10 + Math.random() * 580,
-                    width: 50, // Assuming keyboard image is 50px wide
-                    height: 20, // Assuming keyboard image is 20px tall
+                    width: 50,
+                    height: 20,
                     type: type
                 };
             } else {
@@ -406,13 +394,26 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Gameplay area border
             ctx.strokeStyle = 'green';
             ctx.lineWidth = 2;
             ctx.strokeRect(400, 0, 1000, 600);
 
-            // Player - Draw image instead of rectangle
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+
+            // Render Autistic Focus Ray laser effect
+            if (autisticFocusRayActive) {
+                ctx.globalAlpha = autisticFocusRayOpacity;
+                const gradient = ctx.createLinearGradient(player.x + 10, player.y, player.x + 10, player.y - 300);
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)'); // Bright red at player
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)'); // Fades to transparent at top
+                ctx.beginPath();
+                ctx.moveTo(player.x + 10, player.y);
+                ctx.lineTo(player.x + 10, player.y - 300);
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 10; // Laser thickness
+                ctx.stroke();
+                ctx.globalAlpha = 1; // Reset transparency
+            }
 
             // Render Tate Punch moving entities
             tatePunchEntities.forEach(entity => {
@@ -423,21 +424,18 @@
                 ctx.restore();
             });
 
-            // Code characters
             ctx.font = '12px Courier';
             ctx.fillStyle = codeColor;
             codeCharacters.forEach((code) => {
                 ctx.fillText(code.char, code.x - 5, code.y);
             });
 
-            // HUD
             ctx.fillStyle = 'green';
             ctx.font = '20px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${score}`, 10, 30);
             ctx.fillText(`HP: ${lives}`, 10, 60);
 
-            // Ability recharge bars
             let barY = 100;
             abilities.forEach((ability) => {
                 let rechargePercent = ability.currentRecharge / ability.rechargeTime;
@@ -449,7 +447,6 @@
                 barY += 20;
             });
 
-            // Controls
             const controls = [
                 "Arrows to move",
                 "1-Autistic_Focus_Ray",
@@ -464,7 +461,6 @@
                 ctx.fillText(text, 10, barY + 20 + index * 20);
             });
 
-            // Boss - Draw specific image based on boss name
             if (boss !== null) {
                 ctx.drawImage(boss.image, boss.x, boss.y, boss.width, boss.height);
                 ctx.fillStyle = 'black';
@@ -473,7 +469,6 @@
                 ctx.fillText(`HP: ${boss.health}`, boss.x + 10, boss.y + 40);
             }
 
-            // Power-up
             if (powerUp !== null) {
                 if (powerUp.type === "Keyboard") {
                     ctx.drawImage(keyboardImage, powerUp.x, powerUp.y, powerUp.width, powerUp.height);
@@ -486,21 +481,18 @@
                 }
             }
 
-            // Projectiles
             ctx.fillStyle = 'white';
             ctx.font = '16px Arial';
             projectiles.forEach((proj) => {
                 ctx.fillText(proj.text, proj.x - 10, proj.y);
             });
 
-            // Boss projectiles
             ctx.fillStyle = 'red';
             ctx.font = '16px Arial';
             bossProjectiles.forEach((proj) => {
                 ctx.fillText("propaganda", proj.x - 30, proj.y);
             });
 
-            // Game over or win
             if (lives <= 0) {
                 ctx.fillStyle = 'red';
                 ctx.font = '40px Arial';
@@ -509,11 +501,11 @@
                 ctx.fillText("the matrix has you", 900, 320);
             } else if (gameWon) {
                 const currentTime = Date.now();
-                const T_cycle_ms = (60 / 130) * 1000; // ~461.538 ms per cycle (130 BPM)
+                const T_cycle_ms = (60 / 130) * 1000;
                 const fractional = (currentTime % T_cycle_ms) / T_cycle_ms;
-                if (fractional < 0.5) { // Visible for half the cycle
-                    ctx.fillStyle = 'white'; // Changed to white
-                    ctx.font = '60px Arial'; // Increased to 60px
+                if (fractional < 0.5) {
+                    ctx.fillStyle = 'white';
+                    ctx.font = '60px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText("Humanity is free and not for sale", 900, 300);
                 }
