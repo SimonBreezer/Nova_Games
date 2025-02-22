@@ -33,8 +33,8 @@
         }
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000 },
-            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 50000 },
-            { name: "Misaligned AI", health: 20, attackInterval: 30, scoreThreshold: 200000 }
+            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000 },
+            { name: "Misaligned AI", health: 20, attackInterval: 30, scoreThreshold: 50000 }
         ];
         let currentBossIndex = 0;
         let abilities = [
@@ -78,30 +78,16 @@
         }
 
         function activateTatePunch() {
-            const angleLeft = -Math.PI / 4; // -45 degrees
-            const angleRight = Math.PI / 4; // 45 degrees
-            const speed = 5;
-
-            const vxLeft = speed * Math.cos(angleLeft);
-            const vyLeft = speed * Math.sin(angleLeft);
-            const vxRight = speed * Math.cos(angleRight);
-            const vyRight = speed * Math.sin(angleRight);
-
-            projectiles.push({
-                x: player.x + player.width / 2,
-                y: player.y,
-                vx: vxLeft,
-                vy: vyLeft,
-                text: "Tate",
-                clearsCode: true
-            });
-            projectiles.push({
-                x: player.x + player.width / 2,
-                y: player.y,
-                vx: vxRight,
-                vy: vyRight,
-                text: "Tate",
-                clearsCode: true
+            // Tate Punch clears diagonal paths at 45 degrees
+            const maxY = player.y - 300; // Same length as Autistic Focus Ray
+            codeCharacters = codeCharacters.filter((code) => {
+                const dx = code.x - (player.x + 10);
+                const dy = code.y - player.y;
+                // Left diagonal (slope -1): y = -x + c, check within 50 pixels width
+                const leftDist = Math.abs(dy + dx); // Distance from line y = -x
+                // Right diagonal (slope 1): y = x + c, check within 50 pixels width
+                const rightDist = Math.abs(dy - dx); // Distance from line y = x
+                return !(code.y <= player.y && code.y >= maxY && (leftDist <= 25 || rightDist <= 25));
             });
         }
 
@@ -190,7 +176,7 @@
             if (autisticFocusRayActive) {
                 const maxY = player.y - 300; // Tripled range
                 codeCharacters = codeCharacters.filter((code) =>
-                    !(code.y < player.y + 10 && code.y > maxY && Math.abs(code.x - (player.x + 10)) <= 50)
+                    !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
                 autisticFocusRayTimer--;
                 if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
