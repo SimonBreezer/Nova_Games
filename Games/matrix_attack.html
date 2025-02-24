@@ -98,7 +98,9 @@
         let frameCount = 0;
         let baseCodeSpeed = 0.5;
         let codeColor = '#0f0';
-        let gameWon = false;
+        let newLevelActive = false;
+        let safeX = 0;
+        let safeVx = 0;
         let lastShotFrame = 0;
         let musicStarted = false;
 
@@ -121,9 +123,9 @@
 
         // Ability activation functions
         function activateAutisticFocusRay() {
-            console.log("Autistic Focus Ray activated"); // Debug activation
+            console.log("Autistic Focus Ray activated");
             autisticFocusRayActive = true;
-            autisticFocusRayTimer = 60; // 1 second at 60 fps
+            autisticFocusRayTimer = 60;
             autisticFocusRayOpacity = 1;
         }
 
@@ -164,13 +166,31 @@
 
         // Update game state
         function update() {
-            if (lives <= 0 || gameWon) {
+            if (lives <= 0) {
                 gameMusic.pause();
                 return;
             }
 
             frameCount++;
 
+            // Manage clearing path movement in the new level
+            if (newLevelActive) {
+                if (frameCount % 60 === 0) {
+                    safeVx = (Math.random() < 0.5 ? -1 : 1) * 2;
+                }
+                safeX += safeVx;
+                const minX = 450; // 400 + 50 to keep path within gameplay area
+                const maxX = 1350; // 1400 - 50
+                if (safeX < minX) {
+                    safeX = minX;
+                    safeVx = 0;
+                } else if (safeX > maxX) {
+                    safeX = maxX;
+                    safeVx = 0;
+                }
+            }
+
+            // Player movement
             if (keys['ArrowLeft']) player.x -= player.speed;
             if (keys['ArrowRight']) player.x += player.speed;
             if (keys['ArrowUp']) player.y -= player.speed;
@@ -178,13 +198,19 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            if (!gameWon) {
-                columns.forEach((colX) => {
+            // Spawn code characters, skipping the safe path in the new level
+            columns.forEach((colX) => {
+                if (!newLevelActive || Math.abs(colX - safeX) > 50) {
                     if (Math.random() < 0.15) {
                         let char = Math.random() < 0.5 ? '0' : '1';
                         codeCharacters.push({ x: colX, y: 0, char: char });
                     }
-                });
+                }
+            });
+
+            // Clear code within the safe path
+            if (newLevelActive) {
+                codeCharacters = codeCharacters.filter((code) => Math.abs(code.x - safeX) > 50);
             }
 
             let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
@@ -204,14 +230,16 @@
                 }
             });
 
+            // Ability recharges
             abilities.forEach((ability) => {
                 if (ability.currentRecharge < ability.rechargeTime) {
                     ability.currentRecharge++;
                 }
             });
 
+            // Activate abilities
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
-                console.log("Activating Autistic Focus Ray"); // Debug key press
+                console.log("Activating Autistic Focus Ray");
                 activateAutisticFocusRay();
                 abilities[0].currentRecharge = 0;
             }
@@ -228,6 +256,7 @@
                 abilities[3].currentRecharge = 0;
             }
 
+            // Ability effects
             if (matrixImmunityActive) {
                 codeCharacters = codeCharacters.filter((code) => {
                     let dx = code.x - (player.x + 10);
@@ -259,7 +288,8 @@
                 entity.y >= 0 && entity.x >= 400 && entity.x <= 1400
             );
 
-            if (currentBossIndex < bosses.length && score >= bosses[currentBossIndex].scoreThreshold && boss === null && !gameWon) {
+            // Spawn boss
+            if (currentBossIndex < bosses.length && score >= bosses[currentBossIndex].scoreThreshold && boss === null) {
                 const bossData = bosses[currentBossIndex];
                 boss = { 
                     name: bossData.name, 
@@ -276,13 +306,13 @@
                 spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
             }
 
+            // Boss logic
             if (boss !== null) {
                 boss.x += boss.vx;
                 if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
 
                 if (frameCount % boss.attackInterval === 0) {
                     if (boss.name === "Misaligned AI") {
-                        // Calculate direction to player
                         const dx = (player.x + player.width / 2) - (boss.x + boss.width / 2);
                         const dy = (player.y + player.height / 2) - (boss.y + boss.height / 2);
                         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -354,8 +384,10 @@
                                     codeColor = 'red';
                                     baseCodeSpeed *= 2;
                                 } else if (boss.name === "Misaligned AI") {
-                                    gameWon = true;
-                                    codeCharacters = [];
+                                    newLevelActive = true;
+                                    baseCodeSpeed *= 1.5;
+                                    safeX = player.x + 10;
+                                    safeVx = (Math.random() < 0.5 ? -1 : 1) * 2;
                                 }
                                 currentBossIndex++;
                                 boss = null;
@@ -402,6 +434,18 @@
             ctx.lineWidth = 2;
             ctx.strokeRect(400, 0, 1000, 600);
 
+            // Draw clearing path indicators
+            if (newLevelActive) {
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(safeX - 50, 0);
+                ctx.lineTo(safeX - 50, 600);
+                ctx.moveTo(safeX + 50, 0);
+                ctx.lineTo(safeX + 50, 600);
+                ctx.stroke();
+            }
+
             // Draw player
             ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
@@ -417,26 +461,22 @@
 
             // Render Autistic Focus Ray laser effect
             if (autisticFocusRayActive) {
-                console.log("Drawing laser"); // Debug rendering
-                const topY = Math.max(0, player.y - 300); // Ensure it doesn't go off-screen
-                const leftX = player.x - 40; // Match clearing area (player.x + 10 - 50)
-                const width = 100; // Matches 100-pixel clearing width
+                console.log("Drawing laser");
+                const topY = Math.max(0, player.y - 300);
+                const leftX = player.x - 40;
+                const width = 100;
                 const height = player.y - topY;
 
-                // Save context state
                 ctx.save();
                 ctx.globalAlpha = autisticFocusRayOpacity;
 
-                // Create vertical gradient
                 const gradient = ctx.createLinearGradient(leftX + width / 2, player.y, leftX + width / 2, topY);
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)'); // Solid red at bottom
-                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)'); // Transparent at top
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
 
-                // Draw the laser as a filled rectangle
                 ctx.fillStyle = gradient;
                 ctx.fillRect(leftX, topY, width, height);
 
-                // Restore context state
                 ctx.restore();
             }
 
@@ -488,7 +528,7 @@
                 ctx.fillText(text, 10, barY + 20 + index * 20);
             });
 
-            // Draw boss image only, without name and HP text
+            // Draw boss image
             if (boss !== null) {
                 ctx.drawImage(boss.image, boss.x, boss.y, boss.width, boss.height);
             }
@@ -533,16 +573,6 @@
                 ctx.textAlign = 'center';
                 ctx.fillText("GAME OVER", 900, 280);
                 ctx.fillText("the matrix has you", 900, 320);
-            } else if (gameWon) {
-                const currentTime = Date.now();
-                const T_cycle_ms = (60 / 130) * 1000;
-                const fractional = (currentTime % T_cycle_ms) / T_cycle_ms;
-                if (fractional < 0.5) {
-                    ctx.fillStyle = 'white';
-                    ctx.font = '60px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText("Humanity is free and not for sale", 900, 300);
-                }
             }
             ctx.textAlign = 'left';
         }
