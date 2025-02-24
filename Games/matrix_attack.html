@@ -103,8 +103,6 @@
         let safeVx = 0;
         let lastShotFrame = 0;
         let musicStarted = false;
-        let hpPowerUp = null;
-        let hpSpawnCounter = 0;
 
         // Start music after user interaction
         function startMusic() {
@@ -174,7 +172,6 @@
             }
 
             frameCount++;
-            hpSpawnCounter++;
 
             // Manage clearing path movement in the new level
             if (newLevelActive) {
@@ -193,18 +190,6 @@
                 }
             }
 
-            // Spawn HP power-up every 15 seconds (900 frames at 60 FPS)
-            if (hpSpawnCounter >= 900 && hpPowerUp === null) {
-                hpPowerUp = {
-                    x: 410 + Math.random() * 970, // Adjusted for 30px width
-                    y: 10 + Math.random() * 570,  // Adjusted for 30px height
-                    width: 30,
-                    height: 30,
-                    spawnFrame: frameCount
-                };
-                hpSpawnCounter = 0;
-            }
-
             // Player movement
             if (keys['ArrowLeft']) player.x -= player.speed;
             if (keys['ArrowRight']) player.x += player.speed;
@@ -213,15 +198,17 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            // Spawn code characters in all columns
+            // Spawn code characters, skipping the safe path in the new level
             columns.forEach((colX) => {
-                if (Math.random() < 0.15) {
-                    let char = Math.random() < 0.5 ? '0' : '1';
-                    codeCharacters.push({ x: colX, y: 0, char: char });
+                if (!newLevelActive || Math.abs(colX - safeX) > 50) {
+                    if (Math.random() < 0.15) {
+                        let char = Math.random() < 0.5 ? '0' : '1';
+                        codeCharacters.push({ x: colX, y: 0, char: char });
+                    }
                 }
             });
 
-            // Erase code within the safe path if new level is active
+            // Clear code within the safe path
             if (newLevelActive) {
                 codeCharacters = codeCharacters.filter((code) => Math.abs(code.x - safeX) > 50);
             }
@@ -243,24 +230,6 @@
                 }
             });
 
-            // Check for HP power-up collection or expiration
-            if (hpPowerUp !== null) {
-                if (frameCount - hpPowerUp.spawnFrame > 360) {
-                    hpPowerUp = null;
-                } else if (player.x < hpPowerUp.x + hpPowerUp.width &&
-                           player.x + player.width > hpPowerUp.x &&
-                           player.y < hpPowerUp.y + hpPowerUp.height &&
-                           player.y + player.height > hpPowerUp.y &&
-                           frameCount - hpPowerUp.spawnFrame <= 300) {
-                    if (!newLevelActive) {
-                        lives = Math.min(lives + 100, 50);
-                    } else {
-                        lives += 100;
-                    }
-                    hpPowerUp = null;
-                }
-            }
-
             // Ability recharges
             abilities.forEach((ability) => {
                 if (ability.currentRecharge < ability.rechargeTime) {
@@ -270,6 +239,7 @@
 
             // Activate abilities
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
+                console.log("Activating Autistic Focus Ray");
                 activateAutisticFocusRay();
                 abilities[0].currentRecharge = 0;
             }
@@ -525,28 +495,6 @@
             codeCharacters.forEach((code) => {
                 ctx.fillText(code.char, code.x - 5, code.y);
             });
-
-            // Draw HP power-up with fading effect
-            if (hpPowerUp !== null) {
-                let timeSinceSpawn = frameCount - hpPowerUp.spawnFrame;
-                let opacity;
-                if (timeSinceSpawn <= 300) {
-                    opacity = 1;
-                } else if (timeSinceSpawn <= 360) {
-                    opacity = 1 - (timeSinceSpawn - 300) / 60;
-                } else {
-                    opacity = 0;
-                }
-                ctx.save();
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = 'white';
-                ctx.fillRect(hpPowerUp.x, hpPowerUp.y, hpPowerUp.width, hpPowerUp.height);
-                ctx.fillStyle = 'black';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText("HP +100", hpPowerUp.x + hpPowerUp.width / 2, hpPowerUp.y + hpPowerUp.height / 2 + 4);
-                ctx.restore();
-            }
 
             // Draw HUD
             ctx.fillStyle = 'green';
