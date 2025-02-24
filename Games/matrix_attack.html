@@ -108,7 +108,7 @@
         let safeSize = 100; // Size of the square safe path (100x100)
         let safeVx = 0;
         let safeVy = -1; // Move upwards initially
-        let safeSpeed = 1; // Initial speed for clearing path
+        let safeSpeed = 1; // Initial speed for horizontal movement
         let direction = 0; // Direction for horizontal movement (1 or -1)
         let hpPowerUp = null;
         let hpSpawnCounter = 0;
@@ -188,20 +188,16 @@
 
             // Manage clearing path movement in the new level
             if (newLevelActive) {
-                // Increase clearing path speed by 0.1 each frame
-                safeSpeed += 0.1;
-
-                // Move upwards until reaching the top
                 if (safeY > safeSize / 2) {
-                    safeVy = -safeSpeed;
+                    safeVy = -1; // Constant vertical speed
                     safeVx = 0;
                 } else {
-                    // Once at the top, move horizontally with random direction
                     safeVy = 0;
                     if (frameCount % 60 === 0) { // Change direction every second (60 frames)
                         direction = (Math.random() < 0.5 ? -1 : 1);
                     }
                     safeVx = direction * safeSpeed;
+                    safeSpeed += 0.001; // Increase horizontal speed each frame
                 }
                 safeX += safeVx;
                 safeY += safeVy;
