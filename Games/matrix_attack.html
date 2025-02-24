@@ -49,6 +49,9 @@
         const tateImage = new Image();
         tateImage.src = 'Tate.png';
 
+        const hpBoostImage = new Image();
+        hpBoostImage.src = 'HPboost.jpg';
+
         // Wait for all images to load
         const imageLoadPromises = [
             new Promise(resolve => playerImage.onload = resolve),
@@ -56,7 +59,8 @@
             new Promise(resolve => mainstreamMediaImage.onload = resolve),
             new Promise(resolve => misalignedAIImage.onload = resolve),
             new Promise(resolve => keyboardImage.onload = resolve),
-            new Promise(resolve => tateImage.onload = resolve)
+            new Promise(resolve => tateImage.onload = resolve),
+            new Promise(resolve => hpBoostImage.onload = resolve)
         ];
 
         // Game state variables
@@ -100,13 +104,17 @@
         let codeColor = '#0f0';
         let newLevelActive = false;
         let safeX = 0;
-        let safeY = 300; // Fixed vertical center for the safe square
+        let safeY = 570; // Start at the bottom
         let safeSize = 100; // Size of the square safe path (100x100)
         let safeVx = 0;
+        let safeVy = -1; // Move upwards initially
         let hpPowerUp = null;
         let hpSpawnCounter = 0;
         let lastShotFrame = 0;
         let musicStarted = false;
+        let codeDensityMultiplier = 1; // Starts at normal density
+        let speedIncreaseStartFrame = 0;
+        let safeSpeedMultiplier = 1; // Initial speed multiplier for safe path
 
         // Start music after user interaction
         function startMusic() {
@@ -179,18 +187,20 @@
 
             // Manage clearing path movement in the new level
             if (newLevelActive) {
-                if (frameCount % 60 === 0) {
-                    safeVx = (Math.random() < 0.5 ? -1 : 1) * 2;
-                }
-                safeX += safeVx;
-                const minX = 400 + safeSize / 2; // Keep square within gameplay area
-                const maxX = 1400 - safeSize / 2;
-                if (safeX < minX) {
-                    safeX = minX;
-                    safeVx = 0;
-                } else if (safeX > maxX) {
-                    safeX = maxX;
-                    safeVx = 0;
+                // Gradually increase safe path speed multiplier
+                safeSpeedMultiplier += 0.0001; // Slow increase to avoid rapid escalation
+
+                // Move safe path upwards initially
+                if (safeY > safeSize / 2) {
+                    safeY += safeVy * safeSpeedMultiplier;
+                } else {
+                    // Once at the top, move horizontally
+                    safeX += safeVx * safeSpeedMultiplier;
+                    const minX = 400 + safeSize / 2;
+                    const maxX = 1400 - safeSize / 2;
+                    if (safeX < minX || safeX > maxX) {
+                        safeVx = -safeVx; // Reverse direction
+                    }
                 }
             }
 
@@ -202,15 +212,24 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            // Spawn code characters across all columns for consistent density
+            // Spawn code characters with increased density after Boss 3
+            let spawnProbability = newLevelActive ? 0.3 : 0.15; // Double density after Boss 3
             columns.forEach((colX) => {
-                if (Math.random() < 0.15) {
+                if (Math.random() < spawnProbability) {
                     let char = Math.random() < 0.5 ? '0' : '1';
                     codeCharacters.push({ x: colX, y: 0, char: char });
                 }
             });
 
-            // Clear code within the safe square after spawning
+            // Gradually increase code speed over 30 seconds after Boss 3
+            if (newLevelActive && frameCount - speedIncreaseStartFrame <= 1800) { // 30 seconds at 60 FPS
+                let progress = (frameCount - speedIncreaseStartFrame) / 1800;
+                baseCodeSpeed = 0.5 + (5 - 0.5) * progress; // From 0.5 to 5 (10x over 30s)
+            } else if (newLevelActive) {
+                baseCodeSpeed = 5; // Cap at 10x original speed
+            }
+
+            // Clear code within the safe square
             if (newLevelActive) {
                 codeCharacters = codeCharacters.filter((code) => {
                     return !(code.x >= safeX - safeSize / 2 && code.x <= safeX + safeSize / 2 &&
@@ -235,7 +254,7 @@
                 }
             });
 
-            // Spawn HP power-up every 15 seconds (900 frames at 60 FPS) after Boss 3
+            // Spawn HP power-up every 15 seconds after Boss 3
             if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 900) {
                 hpPowerUp = {
                     x: 410 + Math.random() * 970,
@@ -419,9 +438,10 @@
                                     baseCodeSpeed *= 2;
                                 } else if (boss.name === "Misaligned AI") {
                                     newLevelActive = true;
-                                    baseCodeSpeed *= 1.5;
-                                    safeX = 400 + safeSize / 2 + Math.random() * (1000 - safeSize);
-                                    safeY = 300; // Center vertically, can be randomized if preferred
+                                    speedIncreaseStartFrame = frameCount;
+                                    safeX = player.x;
+                                    safeY = 570; // Start at the bottom
+                                    safeVx = (Math.random() < 0.5 ? -1 : 1) * 2;
                                 }
                                 currentBossIndex++;
                                 boss = null;
@@ -532,12 +552,7 @@
                 if (opacity > 0) {
                     ctx.save();
                     ctx.globalAlpha = opacity;
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(hpPowerUp.x, hpPowerUp.y, hpPowerUp.width, hpPowerUp.height);
-                    ctx.fillStyle = 'black';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText("HP +100", hpPowerUp.x + hpPowerUp.width / 2, hpPowerUp.y + hpPowerUp.height / 2 + 4);
+                    ctx.drawImage(hpBoostImage, hpPowerUp.x, hpPowerUp.y, hpPowerUp.width, hpPowerUp.height);
                     ctx.restore();
                 }
             }
