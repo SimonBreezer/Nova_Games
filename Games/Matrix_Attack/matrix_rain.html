@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Digital Rain</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Create and append canvas
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function setCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        setCanvasSize();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            setCanvasSize();
+            initializeStreams();
+        });
+
+        // Define character set
+        const katakana = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const cyrillic = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const special = '!@#$%^&*()_+-=[]{}|;:,./<>?';
+        const characters = katakana + cyrillic + latin + special;
+
+        // Random character generator
+        function getRandomChar() {
+            return characters[Math.floor(Math.random() * characters.length)];
+        }
+
+        // Global parameters
+        let W, H, focal_length, z_min, z_max, base_font_size, column_spacing, base_spawn_interval;
+
+        function setParameters() {
+            W = canvas.width;
+            H = canvas.height;
+            focal_length = H;
+            z_min = 10;
+            z_max = 50;
+            const min_font_size = 10;
+            base_font_size = min_font_size * (z_max / focal_length);
+            column_spacing = 20;
+            base_spawn_interval = 0.1; // Base spawn interval in seconds
+        }
+
+        // Stream class
+        class Stream {
+            constructor(x, z, x_canvas) {
+                this.x = x;
+                this.z = z;
+                this.x_canvas = x_canvas;
+                this.characters = [];
+                this.last_spawn_time = 0;
+                // Randomize speed (50 to 150 units/second)
+                this.v_y = 50 + Math.random() * 100;
+                // Randomize spawn interval (0.05 to 0.15 seconds)
+                this.spawn_interval = base_spawn_interval * (0.5 + Math.random());
+            }
+
+            update(dt) {
+                // Update character positions
+                this.characters.forEach(char => {
+                    char.y += this.v_y * dt;
+                });
+
+                // Remove characters off-screen
+                this.characters = this.characters.filter(char => {
+                    const y_canvas = (focal_length * char.y) / this.z + H / 2;
+                    return y_canvas <= H;
+                });
+
+                // Spawn new character
+                const current_time = performance.now() / 1000;
+                if (current_time - this.last_spawn_time > this.spawn_interval) {
+                    this.characters.push({ y: -this.z / 2, char: getRandomChar() });
+                    this.last_spawn_time = current_time;
+                }
+            }
+
+            draw() {
+                const font_size = base_font_size * (focal_length / this.z);
+                ctx.font = `${font_size}px monospace`;
+                ctx.fillStyle = 'lime';
+
+                const rect_x = (W - 0.4 * W) / 2;
+                const rect_y = (H - 0.4 * H) / 2;
+                const rect_width = 0.4 * W;
+                const rect_height = 0.4 * H;
+
+                this.characters.forEach(char => {
+                    const y_canvas = (focal_length * char.y) / this.z + H / 2;
+                    // Skip drawing if within title rectangle
+                    if (this.x_canvas >= rect_x && this.x_canvas <= rect_x + rect_width &&
+                        y_canvas >= rect_y && y_canvas <= rect_y + rect_height) {
+                        return;
+                    }
+                    ctx.fillText(char.char, this.x_canvas, y_canvas);
+                });
+            }
+        }
+
+        // Initialize streams
+        let streams = [];
+        function initializeStreams() {
+            setParameters();
+            streams = [];
+            const N_x = Math.ceil(W / column_spacing);
+            for (let j = 0; j < N_x; j++) {
+                const x_canvas = j * column_spacing;
+                const z = z_min + Math.random() * (z_max - z_min);
+                const x = (x_canvas - W / 2) * z / focal_length;
+                streams.push(new Stream(x, z, x_canvas));
+            }
+        }
+        initializeStreams();
+
+        // Animation loop
+        let last_time = performance.now();
+        function animate() {
+            const current_time = performance.now();
+            const dt = (current_time - last_time) / 1000;
+            last_time = current_time;
+
+            // Clear canvas with black background
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, W, H);
+
+            // Update and draw streams
+            streams.forEach(stream => {
+                stream.update(dt);
+                stream.draw();
+            });
+
+            // Draw title placeholder rectangle
+            const rect_x = (W - 0.4 * W) / 2;
+            const rect_y = (H - 0.4 * H) / 2;
+            const rect_width = 0.4 * W;
+            const rect_height = 0.4 * H;
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rect_x, rect_y, rect_width, rect_height);
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
