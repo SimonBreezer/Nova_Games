@@ -36,8 +36,8 @@
         const BASE_FONT_SIZE = 10;       // Smaller base font size
         const ANGULAR_SPEED = 30;        // Rotation speed (degrees/second)
         const OFFSET = 200;              // Scale offset for smaller size variation
-        const N_STREAMS_PER_EDGE = 20;   // Number of streams per edge
-        const SPAWN_PER_STREAM = 1;      // Characters per second per stream
+        const N_STREAMS_PER_EDGE = 60;   // Increased to 60 streams per edge
+        const SPAWN_PER_STREAM = 2;      // Increased to 2 characters per stream per second
 
         // Variables
         let W, H, focalLength, centerX, centerY;
@@ -61,8 +61,8 @@
 
         // Initialize streams along the rectangle's perimeter
         function initializeStreams() {
-            const rectWidth = W * 0.2;
-            const rectHeight = H * 0.2;
+            const rectWidth = W * 0.6;   // Enlarged to 60% of width
+            const rectHeight = H * 0.6;  // Enlarged to 60% of height
             const rectX = (W - rectWidth) / 2;
             const rectY = (H - rectHeight) / 2;
             streams = [];
@@ -153,8 +153,8 @@
                 const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
 
                 // Skip if inside title rectangle
-                const rectWidth = W * 0.2;
-                const rectHeight = H * 0.2;
+                const rectWidth = W * 0.6;
+                const rectHeight = H * 0.6;
                 const rectX = (W - rectWidth) / 2;
                 const rectY = (H - rectHeight) / 2;
                 if (xScreen >= rectX && xScreen <= rectX + rectWidth && yScreen >= rectY && yScreen <= rectY + rectHeight) {
@@ -174,8 +174,8 @@
             });
 
             // Draw title rectangle
-            const rectWidth = W * 0.2;
-            const rectHeight = H * 0.2;
+            const rectWidth = W * 0.6;
+            const rectHeight = H * 0.6;
             const rectX = (W - rectWidth) / 2;
             const rectY = (H - rectHeight) / 2;
             ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
