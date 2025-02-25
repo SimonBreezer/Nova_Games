@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Digital Rain - Rectangular 3D Perspective</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+    <script>
+        // Canvas setup
+        const canvas = document.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Character set including Japanese katakana, Latin letters, numbers, and symbols
+        const characters = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
+
+        // Constants
+        const Z_MAX = 500;               // Farthest depth
+        const Z_MIN = 10;                // Nearest depth
+        const BASE_V_Z = 200;            // Base speed (pixels/second)
+        const V_Z_VARIATION = 100;       // Speed variation
+        const BASE_FONT_SIZE = 10;       // Base font size
+        const ANGULAR_SPEED = 30;        // Rotation speed (degrees/second)
+        const OFFSET = 200;              // Scale offset for size variation
+        const N_STREAMS_PER_EDGE = 40;   // Number of streams per edge
+        const SPAWN_PER_STREAM = 1;      // Characters per second per stream
+
+        // Variables
+        let W, H, focalLength, centerX, centerY;
+        let rectWidth, rectHeight, rectX, rectY;
+        let chars = [];
+        let streams = [];
+        let lastTime = performance.now() / 1000;
+
+        // Resize canvas and set rectangle parameters
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            W = canvas.width;
+            H = canvas.height;
+            focalLength = H;             // Focal length set to height
+            centerX = W / 2;
+            centerY = H / 2;
+            // Reduced title rectangle size to 25% of canvas width and height
+            rectWidth = W * 0.25;
+            rectHeight = H * 0.25;
+            rectX = (W - rectWidth) / 2;
+            rectY = (H - rectHeight) / 2;
+            initializeStreams();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize streams along the rectangle's perimeter
+        function initializeStreams() {
+            streams = [];
+
+            // Top edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                const yScreen = rectY;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Bottom edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                const yScreen = rectY + rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Left edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX;
+                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Right edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + rectWidth;
+                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            const currentTime = performance.now() / 1000;
+            const dt = Math.min(currentTime - lastTime, 0.1);
+            lastTime = currentTime;
+
+            // Partial clear for motion blur effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, W, H);
+
+            // Spawn characters per stream
+            streams.forEach(stream => {
+                stream.spawnAccum += SPAWN_PER_STREAM * dt;
+                const toSpawn = Math.floor(stream.spawnAccum);
+                if (toSpawn > 0) {
+                    stream.spawnAccum -= toSpawn;
+                    for (let i = 0; i < toSpawn; i++) {
+                        const char = {
+                            x: stream.x,
+                            y: stream.y,
+                            z: Z_MAX,
+                            vz: -(BASE_V_Z + (Math.random() - 0.5) * 2 * V_Z_VARIATION),
+                            rotation: Math.random() * 360,
+                            angularVelocity: (Math.random() - 0.5) * 2 * ANGULAR_SPEED,
+                            symbol: getRandomChar()
+                        };
+                        chars.push(char);
+                    }
+                }
+            });
+
+            // Update and filter characters
+            chars = chars.filter(char => {
+                char.z += char.vz * dt;
+                char.rotation += char.angularVelocity * dt;
+                if (char.z <= Z_MIN) return false;
+                const scale = focalLength / (char.z + OFFSET);
+                const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
+                const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
+                return xScreen >= -100 && xScreen <= W + 100 && yScreen >= -100 && yScreen <= H + 100;
+            });
+
+            // Draw characters
+            chars.forEach(char => {
+                const scale = focalLength / (char.z + OFFSET);
+                const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
+                const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
+
+                // Skip drawing inside the title rectangle
+                if (xScreen >= rectX && xScreen <= rectX + rectWidth && 
+                    yScreen >= rectY && yScreen <= rectY + rectHeight) {
+                    return;
+                }
+
+                const fontSize = scale * BASE_FONT_SIZE;
+                ctx.font = `${fontSize}px monospace`;
+                ctx.fillStyle = 'lime';
+                ctx.shadowBlur = Math.min(10, 2 * scale);  // Glow effect
+                ctx.shadowColor = 'lime';
+                ctx.save();
+                ctx.translate(xScreen, yScreen);
+                ctx.rotate((char.rotation * Math.PI) / 180);
+                ctx.fillText(char.symbol, 0, 0);
+                ctx.restore();
+            });
+
+            // Draw title rectangle
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'lime';
+            ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+            ctx.shadowBlur = 0;
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
