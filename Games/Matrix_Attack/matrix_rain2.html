@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Code Vortex</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+        .title-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40%;
+            height: 20%;
+            transform: translate(-50%, -50%);
+            border: 2px solid green;
+            box-shadow: 0 0 10px green;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+    <div class="title-box"></div>
+    <script>
+        const canvas = document.getElementById("matrixCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const characters = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@*&%<>".split("");
+        let particles = [];
+        const maxParticles = 500;
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const angle = Math.random() * Math.PI * 2; // Random direction
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.z = Math.random() * canvas.width; // Depth control
+                this.speed = Math.random() * 2 + 1;
+                this.velocityX = Math.cos(angle) * this.speed;
+                this.velocityY = Math.sin(angle) * this.speed;
+                this.character = characters[Math.floor(Math.random() * characters.length)];
+                this.opacity = 1;
+            }
+
+            update() {
+                this.x += this.velocityX * (this.z / canvas.width);
+                this.y += this.velocityY * (this.z / canvas.width);
+                this.z -= this.speed * 2; // Simulate movement towards viewer
+
+                if (this.z < 10 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                const size = (canvas.width / this.z) * 2;
+                ctx.fillStyle = `rgba(0, 255, 0, ${this.opacity})`;
+                ctx.font = `${size}px monospace`;
+                ctx.fillText(this.character, this.x, this.y);
+            }
+        }
+
+        function initializeParticles() {
+            for (let i = 0; i < maxParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2); // Keep title area empty
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener("resize", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            initializeParticles();
+        });
+
+        initializeParticles();
+        animate();
+    </script>
+</body>
+</html>
