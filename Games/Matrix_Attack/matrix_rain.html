@@ -55,26 +55,24 @@
         function setParameters() {
             W = canvas.width;
             H = canvas.height;
-            focal_length = H;
-            z_min = 10;
-            z_max = 50;
-            const min_font_size = 10;
+            focal_length = H;       // Focal length set to canvas height
+            z_min = 5;              // Closer minimum depth for larger near characters
+            z_max = 100;            // Farther maximum depth for greater range
+            const min_font_size = 10;  // Font size at z_max
             base_font_size = min_font_size * (z_max / focal_length);
-            column_spacing = 20;
+            column_spacing = 20;    // Spacing between streams
             base_spawn_interval = 0.1; // Base spawn interval in seconds
         }
 
         // Stream class
         class Stream {
             constructor(x, z, x_canvas) {
-                this.x = x;
-                this.z = z;
-                this.x_canvas = x_canvas;
+                this.x = x;             // 3D x-position
+                this.z = z;             // Depth position
+                this.x_canvas = x_canvas; // Screen x-position
                 this.characters = [];
                 this.last_spawn_time = 0;
-                // Randomize speed (50 to 150 units/second)
-                this.v_y = 50 + Math.random() * 100;
-                // Randomize spawn interval (0.05 to 0.15 seconds)
+                this.v_y = 30 + Math.random() * 60; // Slower speed (30-90 units/s)
                 this.spawn_interval = base_spawn_interval * (0.5 + Math.random());
             }
 
@@ -101,8 +99,10 @@
             draw() {
                 const font_size = base_font_size * (focal_length / this.z);
                 ctx.font = `${font_size}px monospace`;
-                ctx.fillStyle = 'lime';
+                // Base lightness based on stream depth
+                const lightness_stream = 50 - 40 * (this.z - z_min) / (z_max - z_min);
 
+                // Define title rectangle to avoid overlap
                 const rect_x = (W - 0.4 * W) / 2;
                 const rect_y = (H - 0.4 * H) / 2;
                 const rect_width = 0.4 * W;
@@ -110,11 +110,15 @@
 
                 this.characters.forEach(char => {
                     const y_canvas = (focal_length * char.y) / this.z + H / 2;
-                    // Skip drawing if within title rectangle
+                    // Skip drawing within title area
                     if (this.x_canvas >= rect_x && this.x_canvas <= rect_x + rect_width &&
                         y_canvas >= rect_y && y_canvas <= rect_y + rect_height) {
                         return;
                     }
+                    // Calculate shading based on position within stream
+                    const fraction = (char.y + this.z / 2) / this.z;
+                    const char_lightness = lightness_stream * (1 - 0.8 * fraction);
+                    ctx.fillStyle = `hsl(120, 100%, ${char_lightness}%)`;
                     ctx.fillText(char.char, this.x_canvas, y_canvas);
                 });
             }
@@ -142,7 +146,7 @@
             const dt = (current_time - last_time) / 1000;
             last_time = current_time;
 
-            // Clear canvas with black background
+            // Clear canvas
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, W, H);
 
@@ -152,7 +156,7 @@
                 stream.draw();
             });
 
-            // Draw title placeholder rectangle
+            // Draw title placeholder
             const rect_x = (W - 0.4 * W) / 2;
             const rect_y = (H - 0.4 * H) / 2;
             const rect_width = 0.4 * W;
