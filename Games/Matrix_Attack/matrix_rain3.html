@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matrix Digital Rain - Radial Effect</title>
+    <title>Matrix Digital Rain - 3D Perspective</title>
     <style>
         body {
             margin: 0;
@@ -20,103 +20,149 @@
 <body>
     <canvas></canvas>
     <script>
-        // Get canvas and context
+        // Canvas setup
         const canvas = document.querySelector('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Character set for the streams
+        // Character set (mix of Japanese katakana, Latin letters, numbers, and symbols)
         const characters = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
         const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
 
-        // Constants for customization
+        // Constants
         const Z_MAX = 500;               // Farthest depth
         const Z_MIN = 10;                // Nearest depth
-        const BASE_V_Z = 200;            // Base speed along Z-axis (pixels/second)
+        const BASE_V_Z = 200;            // Base speed (pixels/second)
         const V_Z_VARIATION = 100;       // Speed variation
-        const BASE_FONT_SIZE = 20;       // Base font size for characters
+        const BASE_FONT_SIZE = 10;       // Base font size
         const ANGULAR_SPEED = 30;        // Rotation speed (degrees/second)
-        const SPAWN_RATE = 150;          // Characters spawned per second
-        const BLUR_STEPS = 5;            // Motion blur steps
-        const BLUR_OPACITY = 0.1;        // Opacity for blur effect
+        const OFFSET = 200;              // Scale offset for size variation
+        const N_STREAMS_PER_EDGE = 40;   // Number of streams per edge
+        const SPAWN_PER_STREAM = 1;      // Characters per second per stream
 
-        // Global variables
+        // Variables
         let W, H, focalLength, centerX, centerY;
+        let rectWidth, rectHeight, rectX, rectY;
         let chars = [];
-        let spawnAccum = 0;
+        let streams = [];
         let lastTime = performance.now() / 1000;
 
-        // Resize canvas to fit the window
+        // Resize canvas and set rectangle parameters
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             W = canvas.width;
             H = canvas.height;
-            focalLength = H / 2;
+            focalLength = H;             // Focal length set to height
             centerX = W / 2;
             centerY = H / 2;
+            rectWidth = W * 0.3;         // Title rectangle width: 30% of canvas width
+            rectHeight = H * 0.3;        // Title rectangle height: 30% of canvas height
+            rectX = (W - rectWidth) / 2; // Center horizontally
+            rectY = (H - rectHeight) / 2;// Center vertically
+            initializeStreams();
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Create a new character with random properties
-        function createCharacter() {
-            const angle = Math.random() * 2 * Math.PI;
-            const radius = Math.random() * 100 + 50; // Start near the center
-            return {
-                x: radius * Math.cos(angle),
-                y: radius * Math.sin(angle),
-                z: Z_MAX,
-                vx: (Math.random() - 0.5) * 2 * BASE_V_Z,
-                vy: (Math.random() - 0.5) * 2 * BASE_V_Z,
-                vz: -(BASE_V_Z + (Math.random() - 0.5) * 2 * V_Z_VARIATION),
-                rotation: Math.random() * 360,
-                angularVelocity: (Math.random() - 0.5) * 2 * ANGULAR_SPEED,
-                symbol: getRandomChar()
-            };
+        // Initialize streams along the rectangle's perimeter
+        function initializeStreams() {
+            streams = [];
+
+            // Top edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                const yScreen = rectY;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Bottom edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                const yScreen = rectY + rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Left edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX;
+                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
+
+            // Right edge
+            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
+                const xScreen = rectX + rectWidth;
+                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                const x = (xScreen - centerX) * Z_MAX / focalLength;
+                const y = (yScreen - centerY) * Z_MAX / focalLength;
+                streams.push({ x, y, spawnAccum: 0 });
+            }
         }
 
         // Animation loop
         function animate() {
             const currentTime = performance.now() / 1000;
-            const dt = Math.min(currentTime - lastTime, 0.1); // Delta time, capped at 0.1s
+            const dt = Math.min(currentTime - lastTime, 0.1);
             lastTime = currentTime;
 
             // Partial clear for motion blur effect
-            ctx.fillStyle = `rgba(0, 0, 0, ${BLUR_OPACITY})`;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, W, H);
 
-            // Spawn new characters based on spawn rate
-            spawnAccum += SPAWN_RATE * dt;
-            const toSpawn = Math.floor(spawnAccum);
-            if (toSpawn > 0) {
-                spawnAccum -= toSpawn;
-                for (let i = 0; i < toSpawn; i++) {
-                    chars.push(createCharacter());
+            // Spawn characters per stream
+            streams.forEach(stream => {
+                stream.spawnAccum += SPAWN_PER_STREAM * dt;
+                const toSpawn = Math.floor(stream.spawnAccum);
+                if (toSpawn > 0) {
+                    stream.spawnAccum -= toSpawn;
+                    for (let i = 0; i < toSpawn; i++) {
+                        const char = {
+                            x: stream.x,
+                            y: stream.y,
+                            z: Z_MAX,
+                            vz: -(BASE_V_Z + (Math.random() - 0.5) * 2 * V_Z_VARIATION),
+                            rotation: Math.random() * 360,
+                            angularVelocity: (Math.random() - 0.5) * 2 * ANGULAR_SPEED,
+                            symbol: getRandomChar()
+                        };
+                        chars.push(char);
+                    }
                 }
-            }
+            });
 
             // Update and filter characters
             chars = chars.filter(char => {
-                char.x += char.vx * dt;
-                char.y += char.vy * dt;
                 char.z += char.vz * dt;
                 char.rotation += char.angularVelocity * dt;
                 if (char.z <= Z_MIN) return false;
-                const scale = focalLength / char.z;
-                const xScreen = (focalLength * char.x) / char.z + centerX;
-                const yScreen = (focalLength * char.y) / char.z + centerY;
+                const scale = focalLength / (char.z + OFFSET);
+                const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
+                const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
                 return xScreen >= -100 && xScreen <= W + 100 && yScreen >= -100 && yScreen <= H + 100;
             });
 
-            // Draw characters with perspective and glow
+            // Draw characters
             chars.forEach(char => {
-                const scale = focalLength / char.z;
-                const xScreen = (focalLength * char.x) / char.z + centerX;
-                const yScreen = (focalLength * char.y) / char.z + centerY;
+                const scale = focalLength / (char.z + OFFSET);
+                const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
+                const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
+
+                // Skip drawing inside the title rectangle
+                if (xScreen >= rectX && xScreen <= rectX + rectWidth && 
+                    yScreen >= rectY && yScreen <= rectY + rectHeight) {
+                    return;
+                }
+
                 const fontSize = scale * BASE_FONT_SIZE;
                 ctx.font = `${fontSize}px monospace`;
                 ctx.fillStyle = 'lime';
-                ctx.shadowBlur = Math.min(20, 5 * scale); // Glow scales with proximity
+                ctx.shadowBlur = Math.min(10, 2 * scale);  // Glow effect
                 ctx.shadowColor = 'lime';
                 ctx.save();
                 ctx.translate(xScreen, yScreen);
@@ -125,23 +171,18 @@
                 ctx.restore();
             });
 
-            // Draw the central rectangle with glowing outline
-            const rectWidth = W / 3;
-            const rectHeight = H / 3;
-            const rectX = (W - rectWidth) / 2;
-            const rectY = (H - rectHeight) / 2;
+            // Draw title rectangle
             ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
             ctx.lineWidth = 2;
             ctx.shadowBlur = 15;
             ctx.shadowColor = 'lime';
             ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
-            ctx.shadowBlur = 0; // Reset shadow for next frame
+            ctx.shadowBlur = 0;
 
-            // Request next frame
             requestAnimationFrame(animate);
         }
 
-        // Start the animation
+        // Start animation
         animate();
     </script>
 </body>
