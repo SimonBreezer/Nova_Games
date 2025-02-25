@@ -25,17 +25,17 @@
         const ctx = canvas.getContext('2d');
 
         // Define the character set (Katakana, Latin, numbers, and symbols)
-        const characters = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン01;
+        const characters = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
         const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
 
         // Constants
-        const Z_MAX = 1000;              // Starting depth (farthest from viewer)
+        const Z_MAX = 500;               // Starting depth (farthest from viewer)
         const Z_MIN = 10;                // Minimum depth before removal
         const BASE_V_Z = 200;            // Base speed towards the viewer (pixels per second)
         const V_Z_VARIATION = 100;       // Speed variation
         const X_RANGE = 200;             // Initial X spawn range in 3D space
         const Y_RANGE = 200;             // Initial Y spawn range in 3D space
-        const BASE_FONT_SIZE = 20;       // Font size at focal length
+        const BASE_FONT_SIZE = 40;       // Font size at focal length (increased for visibility)
         const ANGULAR_SPEED = 30;        // Rotation speed (degrees per second)
         const SPAWN_RATE = 150;          // Characters spawned per second
 
@@ -79,7 +79,7 @@
             lastTime = currentTime;
 
             // Partially clear canvas for trail effect (motion blur)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Increased alpha for shorter trails
             ctx.fillRect(0, 0, W, H);
 
             // Spawn new characters based on spawn rate
@@ -110,9 +110,9 @@
                 const xScreen = (focalLength * char.x) / char.z + centerX;
                 const yScreen = (focalLength * char.y) / char.z + centerY;
 
-                // Define title rectangle
-                const rectWidth = W * 0.4;
-                const rectHeight = H * 0.4;
+                // Define title rectangle (smaller for more visibility)
+                const rectWidth = W * 0.2;
+                const rectHeight = H * 0.2;
                 const rectX = (W - rectWidth) / 2;
                 const rectY = (H - rectHeight) / 2;
 
@@ -125,7 +125,7 @@
                 const fontSize = scale * BASE_FONT_SIZE;
                 ctx.font = `${fontSize}px monospace`;
                 ctx.fillStyle = 'lime';
-                ctx.shadowBlur = 10 * scale;                      // Glow increases as character nears
+                ctx.shadowBlur = Math.min(50, 10 * scale);        // Cap shadow blur for performance
                 ctx.shadowColor = 'lime';
                 ctx.save();
                 ctx.translate(xScreen, yScreen);
@@ -135,8 +135,8 @@
             });
 
             // Draw title rectangle
-            const rectWidth = W * 0.4;
-            const rectHeight = H * 0.4;
+            const rectWidth = W * 0.2;
+            const rectHeight = H * 0.2;
             const rectX = (W - rectWidth) / 2;
             const rectY = (H - rectHeight) / 2;
             ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
