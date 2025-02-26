@@ -47,6 +47,7 @@
         let chars = [];
         let streams = [];
         let lastTime = performance.now() / 1000;
+        let buttonFontSize, buttonWidth, buttonHeight, buttonX, buttonY; // Added for button
 
         // Resize canvas and set rectangle parameters
         function resizeCanvas() {
@@ -61,6 +62,16 @@
             rectHeight = H * 0.48;       // 48% of height
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
+
+            // Calculate button properties
+            buttonFontSize = rectHeight / 10;
+            ctx.font = `bold ${buttonFontSize}px 'IBM Plex Mono'`;
+            const textWidth = ctx.measureText('PLAY').width;
+            buttonWidth = textWidth + 40; // Padding of 20px on each side
+            buttonHeight = buttonFontSize + 20; // Padding above and below
+            buttonX = centerX - buttonWidth / 2; // Center horizontally
+            buttonY = rectY + rectHeight - buttonHeight - 20; // 20px from rectangle bottom
+
             initializeStreams();
         }
         resizeCanvas();
@@ -187,7 +198,6 @@
             // Title: "Matrix Attack"
             const titleFontSize = rectHeight / 6;
             ctx.font = `bold ${titleFontSize}px 'IBM Plex Mono'`;
-            // Remove glow for title
             const originalShadowBlur = ctx.shadowBlur;
             ctx.shadowBlur = 0;  // Disable glow
             const titleY = rectY + rectHeight / 2 - 20;  // Position above center
@@ -196,10 +206,18 @@
             // Credit: "a game by @Simon_Breezer"
             const creditFontSize = rectHeight / 12;
             ctx.font = `${creditFontSize}px 'IBM Plex Mono'`;
-            // Remove glow for title
             ctx.shadowBlur = 0;  // Disable glow
             const creditY = rectY + rectHeight / 2 + 20;  // Position below center
             ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
+
+            // Draw button
+            ctx.fillStyle = 'red';
+            ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${buttonFontSize}px 'IBM Plex Mono'`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('PLAY', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
 
             // Reset shadow for subsequent drawings
             ctx.shadowBlur = 0;
