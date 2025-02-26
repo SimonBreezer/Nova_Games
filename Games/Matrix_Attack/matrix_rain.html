@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Digital Rain - Rectangular 3D Perspective</title>
-    <!-- Import IBM Plex Mono font from Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -31,15 +30,15 @@
         const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
 
         // Constants
-        const Z_MAX = 500;               // Farthest depth
-        const Z_MIN = 10;                // Nearest depth
-        const BASE_V_Z = 200;            // Base speed (pixels/second)
-        const V_Z_VARIATION = 100;       // Speed variation
-        const BASE_FONT_SIZE = 10;       // Base font size
-        const ANGULAR_SPEED = 30;        // Rotation speed (degrees/second)
-        const OFFSET = 200;              // Scale offset for size variation
-        const N_STREAMS_PER_EDGE = 40;   // Increased number of streams per edge
-        const SPAWN_PER_STREAM = 1;      // Characters per second per stream
+        const Z_MAX = 500;
+        const Z_MIN = 10;
+        const BASE_V_Z = 200;
+        const V_Z_VARIATION = 100;
+        const BASE_FONT_SIZE = 10;
+        const ANGULAR_SPEED = 30;
+        const OFFSET = 200;
+        const N_STREAMS_PER_EDGE = 40;
+        const SPAWN_PER_STREAM = 1;
 
         // Variables
         let W, H, focalLength, centerX, centerY;
@@ -48,77 +47,56 @@
         let streams = [];
         let lastTime = performance.now() / 1000;
 
-        // **Load the PLAY.png image**
+        // Load the PLAY.png image
         const playImage = new Image();
         playImage.src = 'PLAY.png';
 
-        // **Button variables adjusted for image**
+        // Button variables
         let buttonX, buttonY, buttonWidth, buttonHeight;
 
-        // Resize canvas and set rectangle and button parameters
+        // Resize canvas and set parameters
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             W = canvas.width;
             H = canvas.height;
-            focalLength = H;             // Focal length set to height
+            focalLength = H;
             centerX = W / 2;
             centerY = H / 2;
-            rectWidth = W * 0.48;        // 48% of width
-            rectHeight = H * 0.48;       // 48% of height
+            rectWidth = W * 0.48;
+            rectHeight = H * 0.48;
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
 
-            // **Calculate button properties based on image**
-            buttonHeight = rectHeight / 6; // Set height relative to rectangle
+            // Calculate creditY to determine available space
+            const creditY = rectY + rectHeight / 2 + 20;
+
+            // Calculate button properties
+            const originalHeight = rectHeight / 6;
+            const desiredHeight = originalHeight * 10; // Doubled from 5X to 10X
+            buttonHeight = Math.min(desiredHeight, rectY + rectHeight - creditY - 20); // Cap to available space
             const imageAspectRatio = playImage.width && playImage.height ? playImage.width / playImage.height : 1;
             buttonWidth = buttonHeight * imageAspectRatio;
             buttonX = centerX - buttonWidth / 2; // Center horizontally
-            buttonY = rectY + rectHeight - buttonHeight - 20; // 20px from rectangle bottom
+            buttonY = creditY + 5; // Moved up slightly from +20 to +10
 
             initializeStreams();
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Initialize streams along the rectangle's perimeter
+        // Initialize streams
         function initializeStreams() {
             streams = [];
-
-            // Top edge
             for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
-                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
-                const yScreen = rectY;
-                const x = (xScreen - centerX) * Z_MAX / focalLength;
-                const y = (yScreen - centerY) * Z_MAX / focalLength;
-                streams.push({x, y, spawnAccum: 0});
-            }
-
-            // Bottom edge
-            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
-                const xScreen = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
-                const yScreen = rectY + rectHeight;
-                const x = (xScreen - centerX) * Z_MAX / focalLength;
-                const y = (yScreen - centerY) * Z_MAX / focalLength;
-                streams.push({x, y, spawnAccum: 0});
-            }
-
-            // Left edge
-            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
-                const xScreen = rectX;
-                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
-                const x = (xScreen - centerX) * Z_MAX / focalLength;
-                const y = (yScreen - centerY) * Z_MAX / focalLength;
-                streams.push({x, y, spawnAccum: 0});
-            }
-
-            // Right edge
-            for (let i = 0; i < N_STREAMS_PER_EDGE; i++) {
-                const xScreen = rectX + rectWidth;
-                const yScreen = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
-                const x = (xScreen - centerX) * Z_MAX / focalLength;
-                const y = (yScreen - centerY) * Z_MAX / focalLength;
-                streams.push({x, y, spawnAccum: 0});
+                const xTop = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                streams.push({x: (xTop - centerX) * Z_MAX / focalLength, y: (rectY - centerY) * Z_MAX / focalLength, spawnAccum: 0});
+                const xBottom = rectX + (i / (N_STREAMS_PER_EDGE - 1)) * rectWidth;
+                streams.push({x: (xBottom - centerX) * Z_MAX / focalLength, y: (rectY + rectHeight - centerY) * Z_MAX / focalLength, spawnAccum: 0});
+                const yLeft = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                streams.push({x: (rectX - centerX) * Z_MAX / focalLength, y: (yLeft - centerY) * Z_MAX / focalLength, spawnAccum: 0});
+                const yRight = rectY + (i / (N_STREAMS_PER_EDGE - 1)) * rectHeight;
+                streams.push({x: (rectX + rectWidth - centerX) * Z_MAX / focalLength, y: (yRight - centerY) * Z_MAX / focalLength, spawnAccum: 0});
             }
         }
 
@@ -128,18 +106,16 @@
             const dt = Math.min(currentTime - lastTime, 0.1);
             lastTime = currentTime;
 
-            // Partial clear for motion blur
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, W, H);
 
-            // Spawn characters per stream
             streams.forEach(stream => {
                 stream.spawnAccum += SPAWN_PER_STREAM * dt;
                 const toSpawn = Math.floor(stream.spawnAccum);
                 if (toSpawn > 0) {
                     stream.spawnAccum -= toSpawn;
                     for (let i = 0; i < toSpawn; i++) {
-                        const char = {
+                        chars.push({
                             x: stream.x,
                             y: stream.y,
                             z: Z_MAX,
@@ -147,13 +123,11 @@
                             rotation: Math.random() * 360,
                             angularVelocity: (Math.random() - 0.5) * 2 * ANGULAR_SPEED,
                             symbol: getRandomChar()
-                        };
-                        chars.push(char);
+                        });
                     }
                 }
             });
 
-            // Update and filter characters
             chars = chars.filter(char => {
                 char.z += char.vz * dt;
                 char.rotation += char.angularVelocity * dt;
@@ -164,22 +138,16 @@
                 return xScreen >= -100 && xScreen <= W + 100 && yScreen >= -100 && yScreen <= H + 100;
             });
 
-            // Draw characters
             chars.forEach(char => {
                 const scale = focalLength / (char.z + OFFSET);
                 const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
                 const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
-
-                // Skip if inside title rectangle
                 if (xScreen >= rectX && xScreen <= rectX + rectWidth && 
-                    yScreen >= rectY && yScreen <= rectY + rectHeight) {
-                    return;
-                }
-
+                    yScreen >= rectY && yScreen <= rectY + rectHeight) return;
                 const fontSize = scale * BASE_FONT_SIZE;
                 ctx.font = `${fontSize}px monospace`;
                 ctx.fillStyle = 'lime';
-                ctx.shadowBlur = Math.min(10, 2 * scale);  // Glow effect
+                ctx.shadowBlur = Math.min(10, 2 * scale);
                 ctx.shadowColor = 'lime';
                 ctx.save();
                 ctx.translate(xScreen, yScreen);
@@ -188,54 +156,41 @@
                 ctx.restore();
             });
 
-            // Draw title rectangle
             ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
             ctx.lineWidth = 2;
             ctx.shadowBlur = 15;
             ctx.shadowColor = 'lime';
             ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
 
-            // Draw title and credit
             ctx.fillStyle = 'lime';
             ctx.textAlign = 'center';
-
-            // Title: "Matrix Attack"
             const titleFontSize = rectHeight / 6;
             ctx.font = `bold ${titleFontSize}px 'IBM Plex Mono'`;
-            ctx.shadowBlur = 0;  // Disable glow
-            const titleY = rectY + rectHeight / 2 - 20;  // Position above center
+            ctx.shadowBlur = 0;
+            const titleY = rectY + rectHeight / 2 - 20;
             ctx.fillText('Matrix Attack', centerX, titleY);
-
-            // Credit: "a game by @Simon_Breezer"
-            const creditFontSize = rectHeight / 12;
+            const creditFontSize = rectHeight / 20;
             ctx.font = `${creditFontSize}px 'IBM Plex Mono'`;
-            ctx.shadowBlur = 0;  // Disable glow
-            const creditY = rectY + rectHeight / 2 + 20;  // Position below center
+            const creditY = rectY + rectHeight / 2 + 20;
             ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
 
-            // **Draw the PLAY.png image as the button**
-            if (playImage.complete) { // Ensure image is loaded
+            if (playImage.complete) {
                 ctx.drawImage(playImage, buttonX, buttonY, buttonWidth, buttonHeight);
             }
 
-            // Reset shadow for subsequent drawings
             ctx.shadowBlur = 0;
-
             requestAnimationFrame(animate);
         }
 
-        // Start animation
         animate();
 
-        // **Add click event listener for the image button**
         canvas.addEventListener('click', (event) => {
             const rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             if (x >= buttonX && x <= buttonX + buttonWidth && 
                 y >= buttonY && y <= buttonY + buttonHeight) {
-                console.log('Button clicked'); // Placeholder for game logic
-                // Add your game-starting code here, e.g., window.location.href = 'game.html';
+                console.log('Button clicked');
             }
         });
     </script>
