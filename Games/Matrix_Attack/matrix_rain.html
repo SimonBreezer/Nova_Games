@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Digital Rain - Rectangular 3D Perspective</title>
+    <!-- Import IBM Plex Mono font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -180,20 +182,24 @@
 
             // Draw title and credit
             ctx.fillStyle = 'lime';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'lime';
             ctx.textAlign = 'center';
 
             // Title: "Matrix Attack"
             const titleFontSize = rectHeight / 6;
-            ctx.font = `bold ${titleFontSize}px monospace`;
-            const titleY = rectY + rectHeight / 3;
+            ctx.font = `bold ${titleFontSize}px 'IBM Plex Mono'`;
+            // Remove glow for title
+            const originalShadowBlur = ctx.shadowBlur;
+            ctx.shadowBlur = 0;  // Disable glow
+            const titleY = rectY + rectHeight / 2 - 20;  // Position above center
             ctx.fillText('Matrix Attack', centerX, titleY);
 
             // Credit: "a game by @Simon_Breezer"
             const creditFontSize = rectHeight / 12;
-            ctx.font = `${creditFontSize}px monospace`;
-            const creditY = rectY + 2 * rectHeight / 3;
+            ctx.font = `${creditFontSize}px 'IBM Plex Mono'`;
+            // Restore glow for credit
+            ctx.shadowBlur = 10;  // Reapply glow
+            ctx.shadowColor = 'lime';
+            const creditY = rectY + rectHeight / 2 + 20;  // Position below center
             ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
 
             // Reset shadow for subsequent drawings
