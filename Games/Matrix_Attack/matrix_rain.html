@@ -190,7 +190,7 @@
             // Remove glow for title
             const originalShadowBlur = ctx.shadowBlur;
             ctx.shadowBlur = 0;  // Disable glow
-            const titleY = rectY + rectHeight / 2 - 15;  // Position above center
+            const titleY = rectY + rectHeight / 2 - 20;  // Position above center
             ctx.fillText('Matrix Attack', centerX, titleY);
 
             // Credit: "a game by @Simon_Breezer"
@@ -198,7 +198,7 @@
             ctx.font = `${creditFontSize}px 'IBM Plex Mono'`;
             // Remove glow for title
             ctx.shadowBlur = 0;  // Disable glow
-            const creditY = rectY + rectHeight / 2 + 15;  // Position below center
+            const creditY = rectY + rectHeight / 2 + 20;  // Position below center
             ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
 
             // Reset shadow for subsequent drawings
