@@ -55,9 +55,8 @@
             focalLength = H;             // Focal length set to height
             centerX = W / 2;
             centerY = H / 2;
-            // Set title rectangle size: reduced from 60% to 48% (0.6 * 0.8)
-            rectWidth = W * 0.48;        // Previously W * 0.6
-            rectHeight = H * 0.48;       // Previously H * 0.6
+            rectWidth = W * 0.48;        // 48% of width
+            rectHeight = H * 0.48;       // 48% of height
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
             initializeStreams();
@@ -178,6 +177,26 @@
             ctx.shadowBlur = 15;
             ctx.shadowColor = 'lime';
             ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+
+            // Draw title and credit
+            ctx.fillStyle = 'lime';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'lime';
+            ctx.textAlign = 'center';
+
+            // Title: "Matrix Attack"
+            const titleFontSize = rectHeight / 6;
+            ctx.font = `bold ${titleFontSize}px monospace`;
+            const titleY = rectY + rectHeight / 3;
+            ctx.fillText('Matrix Attack', centerX, titleY);
+
+            // Credit: "a game by @Simon_Breezer"
+            const creditFontSize = rectHeight / 12;
+            ctx.font = `${creditFontSize}px monospace`;
+            const creditY = rectY + 2 * rectHeight / 3;
+            ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
+
+            // Reset shadow for subsequent drawings
             ctx.shadowBlur = 0;
 
             requestAnimationFrame(animate);
