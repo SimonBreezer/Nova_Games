@@ -47,9 +47,12 @@
         let chars = [];
         let streams = [];
         let lastTime = performance.now() / 1000;
-        let buttonFontSize, buttonWidth, buttonHeight, buttonX, buttonY; // Added for button
 
-        // Resize canvas and set rectangle parameters
+        // **Button variables (added)**
+        let buttonX, buttonY, buttonWidth, buttonHeight, buttonFontSize;
+        const buttonText = "Start Game";
+
+        // Resize canvas and set rectangle and button parameters
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -63,12 +66,13 @@
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
 
-            // Calculate button properties
-            buttonFontSize = rectHeight / 10;
+            // **Calculate button properties (added)**
+            buttonFontSize = rectHeight / 12; // Same size as credit text
             ctx.font = `bold ${buttonFontSize}px 'IBM Plex Mono'`;
-            const textWidth = ctx.measureText('PLAY').width;
-            buttonWidth = textWidth + 40; // Padding of 20px on each side
-            buttonHeight = buttonFontSize + 20; // Padding above and below
+            const textWidth = ctx.measureText(buttonText).width;
+            const buttonPadding = 20; // Padding around text
+            buttonWidth = textWidth + buttonPadding * 2;
+            buttonHeight = buttonFontSize + buttonPadding * 2;
             buttonX = centerX - buttonWidth / 2; // Center horizontally
             buttonY = rectY + rectHeight - buttonHeight - 20; // 20px from rectangle bottom
 
@@ -198,7 +202,6 @@
             // Title: "Matrix Attack"
             const titleFontSize = rectHeight / 6;
             ctx.font = `bold ${titleFontSize}px 'IBM Plex Mono'`;
-            const originalShadowBlur = ctx.shadowBlur;
             ctx.shadowBlur = 0;  // Disable glow
             const titleY = rectY + rectHeight / 2 - 20;  // Position above center
             ctx.fillText('Matrix Attack', centerX, titleY);
@@ -210,14 +213,19 @@
             const creditY = rectY + rectHeight / 2 + 20;  // Position below center
             ctx.fillText('a game by @Simon_Breezer', centerX, creditY);
 
-            // Draw button
-            ctx.fillStyle = 'red';
+            // **Draw button (added)**
+            ctx.save();
+            ctx.fillStyle = 'red'; // Button background
             ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white'; // Button border
+            ctx.lineWidth = 2;
+            ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+            ctx.fillStyle = 'white'; // Button text color
             ctx.font = `bold ${buttonFontSize}px 'IBM Plex Mono'`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('PLAY', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+            ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+            ctx.restore();
 
             // Reset shadow for subsequent drawings
             ctx.shadowBlur = 0;
@@ -227,6 +235,18 @@
 
         // Start animation
         animate();
+
+        // **Add click event listener for the button (added)**
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            if (x >= buttonX && x <= buttonX + buttonWidth && 
+                y >= buttonY && y <= buttonY + buttonHeight) {
+                console.log('Button clicked'); // Placeholder for game logic
+                // Add your game-starting code here, e.g., animate(), toggle animation, etc.
+            }
+        });
     </script>
 </body>
 </html>
