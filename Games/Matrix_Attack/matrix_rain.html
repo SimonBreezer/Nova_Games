@@ -55,8 +55,9 @@
             focalLength = H;             // Focal length set to height
             centerX = W / 2;
             centerY = H / 2;
-            rectWidth = W * 0.6;         // Increased display area to 60%
-            rectHeight = H * 0.6;
+            // Set title rectangle size: reduced from 60% to 48% (0.6 * 0.8)
+            rectWidth = W * 0.48;        // Previously W * 0.6
+            rectHeight = H * 0.48;       // Previously H * 0.6
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
             initializeStreams();
