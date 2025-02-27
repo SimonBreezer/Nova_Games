@@ -228,8 +228,8 @@
         boss5Image.src = 'boss5.jpg';
         const boss6Image = new Image();
         boss6Image.src = 'boss6.jpg';
-        const keyboardImage = new Image();
-        keyboardImage.src = 'Keyboard.png';
+        const xPowerUpImage = new Image();
+        xPowerUpImage.src = 'Xpowerup.png';
         const hpBoostImage = new Image();
         hpBoostImage.src = 'HPboost.jpg';
 
@@ -241,7 +241,7 @@
             new Promise(resolve => boss4Image.onload = resolve),
             new Promise(resolve => boss5Image.onload = resolve),
             new Promise(resolve => boss6Image.onload = resolve),
-            new Promise(resolve => keyboardImage.onload = resolve),
+            new Promise(resolve => xPowerUpImage.onload = resolve),
             new Promise(resolve => hpBoostImage.onload = resolve)
         ];
 
@@ -254,11 +254,11 @@
             columns.push(400 + i * 20 + 10);
         }
         const colorPalette = [
-            { r: 255, g: 0, b: 0 },   // red
-            { r: 0, g: 0, b: 255 },   // blue
-            { r: 0, g: 255, b: 0 },   // green
-            { r: 255, g: 255, b: 0 }, // yellow
-            { r: 128, g: 0, b: 128 }  // purple
+            { r: 255, g: 0, b: 0 },    // Red
+            { r: 0, g: 0, b: 255 },    // Blue
+            { r: 0, g: 255, b: 0 },    // Green
+            { r: 255, g: 255, b: 0 },  // Yellow
+            { r: 128, g: 0, b: 128 }   // Purple
         ];
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: boss1Image },
@@ -293,7 +293,7 @@
         let bossInstances = [];
         let powerUp = null;
         let canShoot = false;
-        let shootText = "truth";
+        let shootText = "X";
         let projectiles = [];
         let bossProjectiles = [];
         let frameCount = 0;
@@ -324,7 +324,7 @@
             laserFocusActive = true;
             laserFocusTimer = 60;
             laserFocusOpacity = 1;
-            laserFocusActivationX = player.x + 10; // Center of player
+            laserFocusActivationX = player.x + 10;
             laserFocusActivationY = player.y;
         }
 
@@ -347,39 +347,30 @@
         }
 
         function update() {
-            if (lives <= 0) {
-                return;
-            }
+            if (lives <= 0) return;
 
             frameCount++;
 
             if (newLevelActive) {
-                if (safeY > safeSize / 2) {
+                let elapsedFrames = frameCount - newLevelStartFrame;
+                if (elapsedFrames < 600) { // Less than 10 seconds
                     safeVy = -1;
                     safeVx = 0;
-                } else {
-                    safeVy = 0;
-                    if (frameCount % 60 === 0) {
-                        direction = (Math.random() < 0.5 ? -1 : 1);
-                    }
-                    safeVx = direction * safeSpeed;
                     safeSpeed += 0.0167;
+                } else { // After 10 seconds
+                    safeVy = 0;
+                    if (frameCount % 60 === 0) direction = (Math.random() < 0.5 ? -1 : 1);
+                    safeVx = direction * safeSpeed;
+                    safeSpeed = 1 + 0.0167 * 180; // Speed after 3 seconds (180 frames)
                 }
                 safeX += safeVx;
                 safeY += safeVy;
 
                 const minX = 400 + safeSize / 2;
                 const maxX = 1400 - safeSize / 2;
-                if (safeX < minX) {
-                    safeX = minX;
-                    direction = 1;
-                } else if (safeX > maxX) {
-                    safeX = maxX;
-                    direction = -1;
-                }
-                if (safeY < safeSize / 2) {
-                    safeY = safeSize / 2;
-                }
+                if (safeX < minX) { safeX = minX; direction = 1; }
+                else if (safeX > maxX) { safeX = maxX; direction = -1; }
+                if (safeY < safeSize / 2) safeY = safeSize / 2;
 
                 codeCharacters = codeCharacters.filter(code => {
                     const dx = code.x - safeX;
@@ -398,7 +389,7 @@
             let spawnProbability = gamePhase === 'finalNewLevel' ? 0.3 : (newLevelActive ? 0.3 : 0.15);
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
-                    let spawnCount = (gamePhase === 'finalNewLevel') ? 2 : 1;
+                    let spawnCount = (gamePhase === 'finalNewLevel' || newLevelActive) ? 2 : 1; // Doubled for newLevelActive
                     for (let i = 0; i < spawnCount; i++) {
                         let char = Math.random() < 0.5 ? '0' : '1';
                         let color = codeColor;
@@ -419,8 +410,13 @@
             }
 
             if (newLevelActive) {
-                let progress = Math.min((frameCount - speedIncreaseStartFrame) / 1800, 1);
-                baseCodeSpeed = boss3DefeatSpeed * (1 + 9 * progress);
+                let elapsedFrames = frameCount - newLevelStartFrame;
+                if (elapsedFrames >= 600) { // After 10 seconds
+                    baseCodeSpeed = boss3DefeatSpeed; // Revert to Boss 3 defeat speed
+                } else {
+                    let progress = Math.min(elapsedFrames / 1800, 1);
+                    baseCodeSpeed = boss3DefeatSpeed * (1 + 9 * progress);
+                }
             }
 
             let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
@@ -441,36 +437,25 @@
             });
 
             if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 450) {
-                hpPowerUp = {
-                    x: 410 + Math.random() * 970,
-                    y: 10 + Math.random() * 570,
-                    width: 30,
-                    height: 30,
-                    spawnFrame: frameCount
-                };
+                hpPowerUp = { x: 410 + Math.random() * 970, y: 10 + Math.random() * 570, width: 30, height: 30, spawnFrame: frameCount };
                 hpSpawnCounter = 0;
-            } else if (newLevelActive) {
-                hpSpawnCounter++;
-            }
+            } else if (newLevelActive) hpSpawnCounter++;
 
             if (hpPowerUp !== null) {
                 let timeSinceSpawn = frameCount - hpPowerUp.spawnFrame;
-                if (timeSinceSpawn > 360) {
-                    hpPowerUp = null;
-                } else if (player.x < hpPowerUp.x + hpPowerUp.width &&
-                           player.x + player.width > hpPowerUp.x &&
-                           player.y < hpPowerUp.y + hpPowerUp.height &&
-                           player.y + player.height > hpPowerUp.y &&
-                           timeSinceSpawn <= 300) {
+                if (timeSinceSpawn > 360) hpPowerUp = null;
+                else if (player.x < hpPowerUp.x + hpPowerUp.width &&
+                         player.x + player.width > hpPowerUp.x &&
+                         player.y < hpPowerUp.y + hpPowerUp.height &&
+                         player.y + player.height > hpPowerUp.y &&
+                         timeSinceSpawn <= 300) {
                     lives += 100;
                     hpPowerUp = null;
                 }
             }
 
             abilities.forEach((ability) => {
-                if (ability.currentRecharge < ability.rechargeTime) {
-                    ability.currentRecharge++;
-                }
+                if (ability.currentRecharge < ability.rechargeTime) ability.currentRecharge++;
             });
 
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
@@ -541,11 +526,14 @@
                             const vy = (dy / dist) * speed;
                             bossProjectiles.push({ x: boss.x + boss.width / 2, y: boss.y + boss.height / 2, vx: vx, vy: vy, type: 'laser' });
                         } else {
-                            const angle = Math.random() * 2 * Math.PI;
+                            // Boss 1, 2, 4, 5 shoot towards player
+                            const dx = (player.x + player.width / 2) - (boss.x + boss.width / 2);
+                            const dy = (player.y + player.height / 2) - (boss.y + boss.height / 2);
+                            const dist = Math.sqrt(dx * dx + dy * dy);
                             const speed = boss.attackSpeed;
-                            const vx = speed * Math.cos(angle);
-                            const vy = speed * Math.sin(angle);
-                            bossProjectiles.push({ x: boss.x + 50, y: boss.y + 100, vx: vx, vy: vy });
+                            const vx = (dx / dist) * speed;
+                            const vy = (dy / dist) * speed;
+                            bossProjectiles.push({ x: boss.x + boss.width / 2, y: boss.y + boss.height / 2, vx: vx, vy: vy, type: 'ball' });
                         }
                     }
                 });
@@ -568,7 +556,7 @@
                     player.y < powerUp.y + powerUp.height &&
                     player.y + player.height > powerUp.y) {
                     canShoot = true;
-                    shootText = powerUp.type === "Humanity" ? "free will" : "truth";
+                    shootText = 'X';
                     powerUp = null;
                 }
 
@@ -589,9 +577,7 @@
                                 projectiles.splice(index, 1);
                                 if (boss.health <= 0) {
                                     bossInstances = bossInstances.filter(b => b !== boss);
-                                    if (bossInstances.length === 0) {
-                                        handleBossDefeat();
-                                    }
+                                    if (bossInstances.length === 0) handleBossDefeat();
                                 }
                             }
                         });
@@ -634,10 +620,13 @@
                 initialBossSpeed = baseCodeSpeed;
                 bossFightStartTime = performance.now() / 1000;
             }
-            spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
+            spawnPowerUp();
         }
 
         function spawnBossPair(index) {
+            if (index === 3) codeColor = '#0f0';  // Boss 4 like Boss 1
+            else if (index === 4) codeColor = 'blue';  // Boss 5 like Boss 2
+            else if (index === 5) codeColor = 'red';  // Boss 6 like Boss 3
             const bossData = bosses[index];
             currentBossType = bossData.name;
             bossInstances.push({
@@ -664,7 +653,7 @@
                 attackSpeed: bossData.attackSpeed,
                 image: bossData.image
             });
-            spawnPowerUp(bossData.name === "AI Duo" ? "Humanity" : "Keyboard");
+            spawnPowerUp();
         }
 
         function handleBossDefeat() {
@@ -712,26 +701,14 @@
             bossProjectiles = [];
         }
 
-        function spawnPowerUp(type) {
-            if (type === "Keyboard") {
-                powerUp = {
-                    x: 410 + Math.random() * 930,
-                    y: 10 + Math.random() * 580,
-                    width: 50,
-                    height: 20,
-                    type: type
-                };
-            } else {
-                gameCtx.font = '12px Arial';
-                const textWidth = gameCtx.measureText(type).width;
-                powerUp = {
-                    x: 410 + Math.random() * (980 - textWidth - 4),
-                    y: 10 + Math.random() * 580,
-                    width: textWidth + 4,
-                    height: 20,
-                    type: type
-                };
-            }
+        function spawnPowerUp() {
+            powerUp = {
+                x: 410 + Math.random() * 930,
+                y: 10 + Math.random() * 580,
+                width: 50,
+                height: 50,  // Changed to square
+                type: 'Xpowerup'
+            };
         }
 
         function drawGame() {
@@ -744,7 +721,7 @@
             gameCtx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
             if (newLevelActive) {
-                gameCtx.fillStyle = 'rgba(255, 255, 255, 0)'; // Fully transparent
+                gameCtx.fillStyle = 'rgba(255, 255, 255, 0)';
                 gameCtx.fillRect(safeX - safeSize / 2, safeY - safeSize / 2, safeSize, safeSize);
             }
 
@@ -853,15 +830,7 @@
             });
 
             if (powerUp !== null) {
-                if (powerUp.type === "Keyboard") {
-                    gameCtx.drawImage(keyboardImage, powerUp.x, powerUp.y, powerUp.width, powerUp.height);
-                } else {
-                    gameCtx.fillStyle = 'yellow';
-                    gameCtx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
-                    gameCtx.fillStyle = 'black';
-                    gameCtx.font = '12px Arial';
-                    gameCtx.fillText(powerUp.type, powerUp.x + 2, powerUp.y + 15);
-                }
+                gameCtx.drawImage(xPowerUpImage, powerUp.x, powerUp.y, powerUp.width, powerUp.height);
             }
 
             gameCtx.fillStyle = 'white';
@@ -879,10 +848,11 @@
                     const trailLength = 15;
                     gameCtx.lineTo(proj.x - proj.vx * trailLength, proj.y - proj.vy * trailLength);
                     gameCtx.stroke();
-                } else {
-                    gameCtx.fillStyle = 'red';
-                    gameCtx.font = '16px Arial';
-                    gameCtx.fillText("propaganda", proj.x - 30, proj.y);
+                } else if (proj.type === 'ball') {
+                    gameCtx.fillStyle = 'white';
+                    gameCtx.beginPath();
+                    gameCtx.arc(proj.x, proj.y, 5, 0, 2 * Math.PI);
+                    gameCtx.fill();
                 }
             });
 
@@ -911,13 +881,11 @@
             if (x >= buttonX && x <= buttonX + buttonWidth && 
                 y >= buttonY && y <= buttonY + buttonHeight) {
                 titleAnimationRunning = false;
-                // Removed titleMusic.pause() to keep title music playing
                 titleCanvas.style.display = 'none';
                 gameCanvas.style.display = 'block';
                 Promise.all(imageLoadPromises).then(() => {
                     window.addEventListener('keydown', (e) => { keys[e.key] = true; });
                     window.addEventListener('keyup', (e) => { keys[e.key] = false; });
-                    // Removed game music event listeners
                     gameLoop();
                 }).catch(error => {
                     console.error('Failed to load images:', error);
