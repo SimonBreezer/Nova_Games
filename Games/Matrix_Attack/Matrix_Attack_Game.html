@@ -25,7 +25,12 @@
 <body>
     <canvas id="titleCanvas"></canvas>
     <canvas id="gameCanvas" width="1400" height="600"></canvas>
-    <!-- Audio element for background music -->
+    <!-- Audio element for title screen music -->
+    <audio id="titleMusic" loop>
+        <source src="Intromusic.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <!-- Audio element for game music -->
     <audio id="gameMusic" loop>
         <source src="Matrix_attack_music.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
@@ -34,12 +39,11 @@
         // **Title Screen Setup**
         const titleCanvas = document.getElementById('titleCanvas');
         const titleCtx = titleCanvas.getContext('2d');
+        const titleMusic = document.getElementById('titleMusic');
 
-        // Character set for title screen
         const characters = '01';
         const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
 
-        // Title screen constants
         const Z_MAX = 500;
         const Z_MIN = 10;
         const BASE_V_Z = 200;
@@ -50,18 +54,34 @@
         const N_STREAMS_PER_EDGE = 40;
         const SPAWN_PER_STREAM = 1;
 
-        // Title screen variables
         let W, H, focalLength, centerX, centerY;
         let rectWidth, rectHeight, rectX, rectY;
         let chars = [];
         let streams = [];
         let lastTime = performance.now() / 1000;
+        let titleAnimationRunning = true;
 
-        // Load PLAY button image
         const playImage = new Image();
         playImage.src = 'PLAY.png';
 
         let buttonX, buttonY, buttonWidth, buttonHeight;
+        let titleMusicStarted = false;
+        let showClickText = true;
+        let showPlayButton = false;
+        let clickTextTimer = null;
+
+        function startTitleMusic() {
+            if (!titleMusicStarted) {
+                titleMusicStarted = true;
+                titleMusic.play().catch(error => console.error("Error playing title music:", error));
+                clickTextTimer = setTimeout(() => {
+                    showClickText = false;
+                    showPlayButton = true;
+                }, 2000);
+            }
+        }
+
+        window.addEventListener('click', startTitleMusic, { once: true });
 
         function resizeCanvas() {
             titleCanvas.width = window.innerWidth;
@@ -105,6 +125,8 @@
         }
 
         function animateTitle() {
+            if (!titleAnimationRunning) return;
+
             const currentTime = performance.now() / 1000;
             const dt = Math.min(currentTime - lastTime, 0.1);
             lastTime = currentTime;
@@ -177,7 +199,10 @@
             const creditY = rectY + rectHeight / 2 + 20;
             titleCtx.fillText('a game by @Simon_Breezer', centerX, creditY);
 
-            if (playImage.complete) {
+            if (showClickText) {
+                const clickTextY = buttonY + buttonHeight / 2;
+                titleCtx.fillText('>click anywhere', centerX, clickTextY);
+            } else if (showPlayButton && playImage.complete) {
                 titleCtx.drawImage(playImage, buttonX, buttonY, buttonWidth, buttonHeight);
             }
 
@@ -192,7 +217,6 @@
         const gameCtx = gameCanvas.getContext('2d');
         const gameMusic = document.getElementById('gameMusic');
 
-        // Load game images
         const playerImage = new Image();
         playerImage.src = 'Playerx1.png';
         const boss1Image = new Image();
@@ -224,7 +248,6 @@
             new Promise(resolve => hpBoostImage.onload = resolve)
         ];
 
-        // Game state variables
         let score = 0;
         let lives = 50;
         let player = { x: 490, y: 570, width: 20, height: 20, speed: 5 };
@@ -233,6 +256,13 @@
         for (let i = 0; i < 50; i++) {
             columns.push(400 + i * 20 + 10);
         }
+        const colorPalette = [
+            { r: 255, g: 0, b: 0 },   // red
+            { r: 0, g: 0, b: 255 },   // blue
+            { r: 0, g: 255, b: 0 },   // green
+            { r: 255, g: 255, b: 0 }, // yellow
+            { r: 128, g: 0, b: 128 }  // purple
+        ];
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: boss1Image },
             { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000, image: boss2Image },
@@ -279,7 +309,7 @@
         let hpPowerUp = null;
         let hpSpawnCounter = 0;
         let lastShotFrame = 0;
-        let musicStarted = false;
+        let gameMusicStarted = false;
         let boss3DefeatSpeed = 0;
         let speedIncreaseStartFrame = 0;
         let newLevelStartFrame = 0;
@@ -287,16 +317,15 @@
         let gamePhase = 'initial';
         let scoreAtBossDefeat = 0;
         let currentBossType = null;
+        let bossFightStartTime = 0; // New variable to track boss fight start time
+        let initialBossSpeed = 0;   // New variable to store initial speed at boss spawn
 
-        function startMusic() {
-            if (!musicStarted) {
-                gameMusic.play().catch(error => console.error("Error playing music:", error));
-                musicStarted = true;
+        function startGameMusic() {
+            if (!gameMusicStarted) {
+                gameMusicStarted = true;
+                gameMusic.play().catch(error => console.error("Error playing game music:", error));
             }
         }
-
-        window.addEventListener('keydown', (e) => { keys[e.key] = true; startMusic(); });
-        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
         function activateLaserFocus() {
             laserFocusActive = true;
@@ -364,24 +393,40 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            let spawnProbability = newLevelActive ? 0.3 : 0.15;
+            let spawnProbability;
+            if (gamePhase === 'finalNewLevel') {
+                spawnProbability = 0.9; // Triple density after boss 6
+            } else if (newLevelActive) {
+                spawnProbability = 0.3; // Same as after boss 3
+            } else {
+                spawnProbability = 0.15;
+            }
+
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
                     let char = Math.random() < 0.5 ? '0' : '1';
-                    codeCharacters.push({ x: colX, y: 0, char: char });
+                    let color;
+                    if (gamePhase === 'finalNewLevel') {
+                        let colorIdx = Math.floor(Math.random() * colorPalette.length);
+                        let { r, g, b } = colorPalette[colorIdx];
+                        let intensity = 0.5 + Math.random() * 0.5;
+                        color = `rgba(${r},${g},${b},${intensity})`;
+                    } else {
+                        color = codeColor;
+                    }
+                    codeCharacters.push({ x: colX, y: 0, char: char, color: color });
                 }
             });
+
+            // Incremental speed increase during boss fights for bosses 1, 2, and 3
+            if (bossInstances.length > 0 && currentBossIndex <= 2) {
+                let elapsedSeconds = (performance.now() / 1000) - bossFightStartTime;
+                baseCodeSpeed = initialBossSpeed + 0.005 * Math.floor(elapsedSeconds);
+            }
 
             if (newLevelActive) {
                 let progress = Math.min((frameCount - speedIncreaseStartFrame) / 1800, 1);
                 baseCodeSpeed = boss3DefeatSpeed * (1 + 9 * progress);
-            }
-
-            if (newLevelActive) {
-                codeCharacters = codeCharacters.filter((code) => {
-                    return !(code.x >= safeX - safeSize / 2 && code.x <= safeX + safeSize / 2 &&
-                             code.y >= safeY - safeSize / 2 && code.y <= safeY + safeSize / 2);
-                });
             }
 
             let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
@@ -591,6 +636,11 @@
                 attackSpeed: bossData.attackSpeed,
                 image: bossData.image
             });
+            // Set initial speed and start time for bosses 1, 2, and 3
+            if (index <= 2) {
+                initialBossSpeed = baseCodeSpeed;
+                bossFightStartTime = performance.now() / 1000;
+            }
             spawnPowerUp(bossData.name === "Misaligned AI" ? "Humanity" : "Keyboard");
         }
 
@@ -631,13 +681,14 @@
                     baseCodeSpeed *= 2;
                 } else if (currentBossType === "Mainstream Media") {
                     codeColor = 'red';
-                    baseCodeSpeed *= 2;
+                    baseCodeSpeed *= 2; // Speed increase for Boss 2
                 } else if (currentBossType === "Misaligned AI") {
                     gamePhase = 'newLevel';
                     newLevelActive = true;
                     newLevelStartFrame = frameCount;
                     speedIncreaseStartFrame = frameCount;
                     boss3DefeatSpeed = baseCodeSpeed;
+                    baseCodeSpeed *= 2; // Speed increase for Boss 3
                     safeX = player.x;
                     safeY = 570;
                     safeSpeed = 1;
@@ -752,8 +803,8 @@
             }
 
             gameCtx.font = '12px Courier';
-            gameCtx.fillStyle = codeColor;
             codeCharacters.forEach((code) => {
+                gameCtx.fillStyle = code.color;
                 gameCtx.fillText(code.char, code.x - 5, code.y);
             });
 
@@ -853,16 +904,24 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Transition from title to game
         titleCanvas.addEventListener('click', (event) => {
+            if (!showPlayButton) return;
+
             const rect = titleCanvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             if (x >= buttonX && x <= buttonX + buttonWidth && 
                 y >= buttonY && y <= buttonY + buttonHeight) {
+                titleAnimationRunning = false;
+                titleMusic.pause();
                 titleCanvas.style.display = 'none';
                 gameCanvas.style.display = 'block';
                 Promise.all(imageLoadPromises).then(() => {
+                    window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+                    window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+                    gameCanvas.addEventListener('mousemove', startGameMusic, { once: true });
+                    gameCanvas.addEventListener('click', startGameMusic, { once: true });
+                    gameCanvas.addEventListener('keydown', startGameMusic, { once: true });
                     gameLoop();
                 }).catch(error => {
                     console.error('Failed to load images:', error);
