@@ -25,7 +25,6 @@
 <body>
     <canvas id="titleCanvas"></canvas>
     <canvas id="gameCanvas" width="1400" height="600"></canvas>
-    <!-- Audio elements remain unchanged -->
     <audio id="titleMusic" loop>
         <source src="Intromusic.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
@@ -35,7 +34,7 @@
         Your browser does not support the audio element.
     </audio>
     <script>
-        // **Title Screen Setup (unchanged)**
+        // **Title Screen Setup**
         const titleCanvas = document.getElementById('titleCanvas');
         const titleCtx = titleCanvas.getContext('2d');
         const titleMusic = document.getElementById('titleMusic');
@@ -214,7 +213,6 @@
         // **Game Setup**
         const gameCanvas = document.getElementById('gameCanvas');
         const gameCtx = gameCanvas.getContext('2d');
-        const gameMusic = document.getElementById('gameMusic');
 
         const playerImage = new Image();
         playerImage.src = 'Playerx1.png';
@@ -285,9 +283,13 @@
         let laserFocusActive = false;
         let laserFocusTimer = 0;
         let laserFocusOpacity = 0;
+        let laserFocusActivationX = 0;
+        let laserFocusActivationY = 0;
         let diagonalFocusRayActive = false;
         let diagonalFocusRayTimer = 0;
         let diagonalFocusRayOpacity = 0;
+        let diagonalFocusRayActivationX = 0;
+        let diagonalFocusRayActivationY = 0;
         let bossInstances = [];
         let powerUp = null;
         let canShoot = false;
@@ -300,7 +302,7 @@
         let newLevelActive = false;
         let safeX = 0;
         let safeY = 570;
-        let safeSize = 100; // Matches Focus Ray width
+        let safeSize = 100;
         let safeVx = 0;
         let safeVy = -1;
         let safeSpeed = 1;
@@ -308,7 +310,6 @@
         let hpPowerUp = null;
         let hpSpawnCounter = 0;
         let lastShotFrame = 0;
-        let gameMusicStarted = false;
         let boss3DefeatSpeed = 0;
         let speedIncreaseStartFrame = 0;
         let newLevelStartFrame = 0;
@@ -319,28 +320,25 @@
         let bossFightStartTime = 0;
         let initialBossSpeed = 0;
 
-        function startGameMusic() {
-            if (!gameMusicStarted) {
-                gameMusicStarted = true;
-                gameMusic.play().catch(error => console.error("Error playing game music:", error));
-            }
-        }
-
         function activateLaserFocus() {
             laserFocusActive = true;
             laserFocusTimer = 60;
             laserFocusOpacity = 1;
-        }
-
-        function activateMatrixImmunity() {
-            matrixImmunityActive = true;
-            matrixImmunityTimer = 90;
+            laserFocusActivationX = player.x + 10; // Center of player
+            laserFocusActivationY = player.y;
         }
 
         function activateDiagonalFocusRay() {
             diagonalFocusRayActive = true;
             diagonalFocusRayTimer = 60;
             diagonalFocusRayOpacity = 1;
+            diagonalFocusRayActivationX = player.x + 10;
+            diagonalFocusRayActivationY = player.y;
+        }
+
+        function activateMatrixImmunity() {
+            matrixImmunityActive = true;
+            matrixImmunityTimer = 90;
         }
 
         function activateTimeControl() {
@@ -350,29 +348,26 @@
 
         function update() {
             if (lives <= 0) {
-                gameMusic.pause();
                 return;
             }
 
             frameCount++;
 
-            // **Clearing Path Movement Logic**
             if (newLevelActive) {
                 if (safeY > safeSize / 2) {
-                    safeVy = -1; // Move upward
+                    safeVy = -1;
                     safeVx = 0;
                 } else {
-                    safeVy = 0; // Stop vertical movement
-                    if (frameCount % 60 === 0) { // Change direction every second (60 frames)
+                    safeVy = 0;
+                    if (frameCount % 60 === 0) {
                         direction = (Math.random() < 0.5 ? -1 : 1);
                     }
                     safeVx = direction * safeSpeed;
-                    safeSpeed += 0.0167; // Increase speed every frame (approx 1 per second at 60 FPS)
+                    safeSpeed += 0.0167;
                 }
                 safeX += safeVx;
                 safeY += safeVy;
 
-                // Keep within bounds
                 const minX = 400 + safeSize / 2;
                 const maxX = 1400 - safeSize / 2;
                 if (safeX < minX) {
@@ -386,7 +381,6 @@
                     safeY = safeSize / 2;
                 }
 
-                // Clear code characters within the path
                 codeCharacters = codeCharacters.filter(code => {
                     const dx = code.x - safeX;
                     const dy = code.y - safeY;
@@ -401,11 +395,10 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            // **Binary Code Spawning with Doubled Density Post-Boss 6**
             let spawnProbability = gamePhase === 'finalNewLevel' ? 0.3 : (newLevelActive ? 0.3 : 0.15);
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
-                    let spawnCount = (gamePhase === 'finalNewLevel') ? 2 : 1; // Double codes after Boss 6
+                    let spawnCount = (gamePhase === 'finalNewLevel') ? 2 : 1;
                     for (let i = 0; i < spawnCount; i++) {
                         let char = Math.random() < 0.5 ? '0' : '1';
                         let color = codeColor;
@@ -420,7 +413,6 @@
                 }
             });
 
-            // Incremental speed increase during boss fights for bosses 1, 2, and 3
             if (bossInstances.length > 0 && currentBossIndex <= 2) {
                 let elapsedSeconds = (performance.now() / 1000) - bossFightStartTime;
                 baseCodeSpeed = initialBossSpeed + 0.005 * Math.floor(elapsedSeconds);
@@ -508,22 +500,22 @@
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
             if (laserFocusActive) {
-                const maxY = player.y - 300;
+                const maxY = laserFocusActivationY - 300;
                 codeCharacters = codeCharacters.filter((code) =>
-                    !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
+                    !(code.y <= laserFocusActivationY && code.y >= maxY && Math.abs(code.x - laserFocusActivationX) <= 50)
                 );
                 laserFocusTimer--;
                 laserFocusOpacity = laserFocusTimer / 60;
                 if (laserFocusTimer <= 0) laserFocusActive = false;
             }
             if (diagonalFocusRayActive) {
-                const maxY = player.y - 300;
+                const maxY = diagonalFocusRayActivationY - 300;
                 codeCharacters = codeCharacters.filter((code) => {
-                    const dx = code.x - (player.x + 10);
-                    const dy = code.y - player.y;
+                    const dx = code.x - diagonalFocusRayActivationX;
+                    const dy = code.y - diagonalFocusRayActivationY;
                     const leftDist = Math.abs(dy + dx);
                     const rightDist = Math.abs(dy - dx);
-                    return !(code.y <= player.y && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
+                    return !(code.y <= diagonalFocusRayActivationY && code.y >= maxY && (leftDist <= 100 || rightDist <= 100));
                 });
                 diagonalFocusRayTimer--;
                 diagonalFocusRayOpacity = diagonalFocusRayTimer / 60;
@@ -751,9 +743,8 @@
 
             gameCtx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 
-            // **Render Clearing Path**
             if (newLevelActive) {
-                gameCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                gameCtx.fillStyle = 'rgba(255, 255, 255, 0)'; // Fully transparent
                 gameCtx.fillRect(safeX - safeSize / 2, safeY - safeSize / 2, safeSize, safeSize);
             }
 
@@ -767,13 +758,13 @@
             }
 
             if (laserFocusActive) {
-                const topY = Math.max(0, player.y - 300);
-                const leftX = player.x - 40;
+                const topY = Math.max(0, laserFocusActivationY - 300);
+                const leftX = laserFocusActivationX - 50;
                 const width = 100;
-                const height = player.y - topY;
+                const height = laserFocusActivationY - topY;
                 gameCtx.save();
                 gameCtx.globalAlpha = laserFocusOpacity;
-                const gradient = gameCtx.createLinearGradient(leftX + width / 2, player.y, leftX + width / 2, topY);
+                const gradient = gameCtx.createLinearGradient(leftX + width / 2, laserFocusActivationY, leftX + width / 2, topY);
                 gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
                 gradient.addColorStop(1, 'rgba(255, 0, 0, 1)');
                 gameCtx.fillStyle = gradient;
@@ -786,7 +777,7 @@
                 const rayWidth = 100;
                 gameCtx.save();
                 gameCtx.globalAlpha = diagonalFocusRayOpacity;
-                gameCtx.translate(player.x + 10, player.y);
+                gameCtx.translate(diagonalFocusRayActivationX, diagonalFocusRayActivationY);
 
                 gameCtx.save();
                 gameCtx.rotate(-Math.PI / 4);
@@ -920,15 +911,13 @@
             if (x >= buttonX && x <= buttonX + buttonWidth && 
                 y >= buttonY && y <= buttonY + buttonHeight) {
                 titleAnimationRunning = false;
-                titleMusic.pause();
+                // Removed titleMusic.pause() to keep title music playing
                 titleCanvas.style.display = 'none';
                 gameCanvas.style.display = 'block';
                 Promise.all(imageLoadPromises).then(() => {
                     window.addEventListener('keydown', (e) => { keys[e.key] = true; });
                     window.addEventListener('keyup', (e) => { keys[e.key] = false; });
-                    gameCanvas.addEventListener('mousemove', startGameMusic, { once: true });
-                    gameCanvas.addEventListener('click', startGameMusic, { once: true });
-                    gameCanvas.addEventListener('keydown', startGameMusic, { once: true });
+                    // Removed game music event listeners
                     gameLoop();
                 }).catch(error => {
                     console.error('Failed to load images:', error);
