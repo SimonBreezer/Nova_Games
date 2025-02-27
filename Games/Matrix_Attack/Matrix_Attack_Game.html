@@ -25,18 +25,17 @@
 <body>
     <canvas id="titleCanvas"></canvas>
     <canvas id="gameCanvas" width="1400" height="600"></canvas>
-    <!-- Audio element for title screen music -->
+    <!-- Audio elements remain unchanged -->
     <audio id="titleMusic" loop>
         <source src="Intromusic.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
-    <!-- Audio element for game music -->
     <audio id="gameMusic" loop>
         <source src="Matrix_attack_music.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
     <script>
-        // **Title Screen Setup**
+        // **Title Screen Setup (unchanged)**
         const titleCanvas = document.getElementById('titleCanvas');
         const titleCtx = titleCanvas.getContext('2d');
         const titleMusic = document.getElementById('titleMusic');
@@ -301,7 +300,7 @@
         let newLevelActive = false;
         let safeX = 0;
         let safeY = 570;
-        let safeSize = 100;
+        let safeSize = 100; // Matches Focus Ray width
         let safeVx = 0;
         let safeVy = -1;
         let safeSpeed = 1;
@@ -317,8 +316,8 @@
         let gamePhase = 'initial';
         let scoreAtBossDefeat = 0;
         let currentBossType = null;
-        let bossFightStartTime = 0; // New variable to track boss fight start time
-        let initialBossSpeed = 0;   // New variable to store initial speed at boss spawn
+        let bossFightStartTime = 0;
+        let initialBossSpeed = 0;
 
         function startGameMusic() {
             if (!gameMusicStarted) {
@@ -357,21 +356,23 @@
 
             frameCount++;
 
+            // **Clearing Path Movement Logic**
             if (newLevelActive) {
                 if (safeY > safeSize / 2) {
-                    safeVy = -1;
+                    safeVy = -1; // Move upward
                     safeVx = 0;
                 } else {
-                    safeVy = 0;
-                    if (frameCount % 60 === 0) {
+                    safeVy = 0; // Stop vertical movement
+                    if (frameCount % 60 === 0) { // Change direction every second (60 frames)
                         direction = (Math.random() < 0.5 ? -1 : 1);
                     }
                     safeVx = direction * safeSpeed;
-                    safeSpeed += 0.0003;
+                    safeSpeed += 0.0167; // Increase speed every frame (approx 1 per second at 60 FPS)
                 }
                 safeX += safeVx;
                 safeY += safeVy;
 
+                // Keep within bounds
                 const minX = 400 + safeSize / 2;
                 const maxX = 1400 - safeSize / 2;
                 if (safeX < minX) {
@@ -384,6 +385,13 @@
                 if (safeY < safeSize / 2) {
                     safeY = safeSize / 2;
                 }
+
+                // Clear code characters within the path
+                codeCharacters = codeCharacters.filter(code => {
+                    const dx = code.x - safeX;
+                    const dy = code.y - safeY;
+                    return (dx < -safeSize / 2 || dx > safeSize / 2 || dy < -safeSize / 2 || dy > safeSize / 2);
+                });
             }
 
             if (keys['ArrowLeft']) player.x -= player.speed;
@@ -393,28 +401,22 @@
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
 
-            let spawnProbability;
-            if (gamePhase === 'finalNewLevel') {
-                spawnProbability = 0.9; // Triple density after boss 6
-            } else if (newLevelActive) {
-                spawnProbability = 0.3; // Same as after boss 3
-            } else {
-                spawnProbability = 0.15;
-            }
-
+            // **Binary Code Spawning with Doubled Density Post-Boss 6**
+            let spawnProbability = gamePhase === 'finalNewLevel' ? 0.3 : (newLevelActive ? 0.3 : 0.15);
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
-                    let char = Math.random() < 0.5 ? '0' : '1';
-                    let color;
-                    if (gamePhase === 'finalNewLevel') {
-                        let colorIdx = Math.floor(Math.random() * colorPalette.length);
-                        let { r, g, b } = colorPalette[colorIdx];
-                        let intensity = 0.5 + Math.random() * 0.5;
-                        color = `rgba(${r},${g},${b},${intensity})`;
-                    } else {
-                        color = codeColor;
+                    let spawnCount = (gamePhase === 'finalNewLevel') ? 2 : 1; // Double codes after Boss 6
+                    for (let i = 0; i < spawnCount; i++) {
+                        let char = Math.random() < 0.5 ? '0' : '1';
+                        let color = codeColor;
+                        if (gamePhase === 'finalNewLevel') {
+                            let colorIdx = Math.floor(Math.random() * colorPalette.length);
+                            let { r, g, b } = colorPalette[colorIdx];
+                            let intensity = 0.5 + Math.random() * 0.5;
+                            color = `rgba(${r},${g},${b},${intensity})`;
+                        }
+                        codeCharacters.push({ x: colX, y: 0, char: char, color: color });
                     }
-                    codeCharacters.push({ x: colX, y: 0, char: char, color: color });
                 }
             });
 
@@ -636,7 +638,6 @@
                 attackSpeed: bossData.attackSpeed,
                 image: bossData.image
             });
-            // Set initial speed and start time for bosses 1, 2, and 3
             if (index <= 2) {
                 initialBossSpeed = baseCodeSpeed;
                 bossFightStartTime = performance.now() / 1000;
@@ -681,14 +682,14 @@
                     baseCodeSpeed *= 2;
                 } else if (currentBossType === "Mainstream Media") {
                     codeColor = 'red';
-                    baseCodeSpeed *= 2; // Speed increase for Boss 2
+                    baseCodeSpeed *= 2;
                 } else if (currentBossType === "Misaligned AI") {
                     gamePhase = 'newLevel';
                     newLevelActive = true;
                     newLevelStartFrame = frameCount;
                     speedIncreaseStartFrame = frameCount;
                     boss3DefeatSpeed = baseCodeSpeed;
-                    baseCodeSpeed *= 2; // Speed increase for Boss 3
+                    baseCodeSpeed *= 2;
                     safeX = player.x;
                     safeY = 570;
                     safeSpeed = 1;
@@ -749,6 +750,12 @@
             gameCtx.strokeRect(400, 0, 1000, 600);
 
             gameCtx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+
+            // **Render Clearing Path**
+            if (newLevelActive) {
+                gameCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                gameCtx.fillRect(safeX - safeSize / 2, safeY - safeSize / 2, safeSize, safeSize);
+            }
 
             if (matrixImmunityActive) {
                 gameCtx.beginPath();
