@@ -34,20 +34,26 @@
         const playerImage = new Image();
         playerImage.src = 'Playerx1.png';
 
-        const politicianImage = new Image();
-        politicianImage.src = 'Politician.jpg';
+        const boss1Image = new Image();
+        boss1Image.src = 'boss1.jpg';
 
-        const mainstreamMediaImage = new Image();
-        mainstreamMediaImage.src = 'MainstreamMedia.jpg';
+        const boss2Image = new Image();
+        boss2Image.src = 'boss2.jpg';
 
-        const misalignedAIImage = new Image();
-        misalignedAIImage.src = 'MisalignedAI.png';
+        const boss3Image = new Image();
+        boss3Image.src = 'boss3.png';
+
+        const boss4Image = new Image();
+        boss4Image.src = 'boss4.jpg';
+
+        const boss5Image = new Image();
+        boss5Image.src = 'boss5.jpg';
+
+        const boss6Image = new Image();
+        boss6Image.src = 'boss6.jpg';
 
         const keyboardImage = new Image();
         keyboardImage.src = 'Keyboard.png';
-
-        const tateImage = new Image();
-        tateImage.src = 'Tate.png';
 
         const hpBoostImage = new Image();
         hpBoostImage.src = 'HPboost.jpg';
@@ -55,11 +61,13 @@
         // Wait for all images to load
         const imageLoadPromises = [
             new Promise(resolve => playerImage.onload = resolve),
-            new Promise(resolve => politicianImage.onload = resolve),
-            new Promise(resolve => mainstreamMediaImage.onload = resolve),
-            new Promise(resolve => misalignedAIImage.onload = resolve),
+            new Promise(resolve => boss1Image.onload = resolve),
+            new Promise(resolve => boss2Image.onload = resolve),
+            new Promise(resolve => boss3Image.onload = resolve),
+            new Promise(resolve => boss4Image.onload = resolve),
+            new Promise(resolve => boss5Image.onload = resolve),
+            new Promise(resolve => boss6Image.onload = resolve),
             new Promise(resolve => keyboardImage.onload = resolve),
-            new Promise(resolve => tateImage.onload = resolve),
             new Promise(resolve => hpBoostImage.onload = resolve)
         ];
 
@@ -73,16 +81,16 @@
             columns.push(400 + i * 20 + 10); // Center of each 20px-wide column
         }
         const bosses = [
-            { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: politicianImage },
-            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000, image: mainstreamMediaImage },
-            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 5, scoreThreshold: 50000, image: misalignedAIImage },
-            { name: "Politician Duo", health: 5, attackInterval: 60, attackSpeed: 1, image: politicianImage },
-            { name: "Media Duo", health: 10, attackInterval: 30, attackSpeed: 2, image: mainstreamMediaImage },
-            { name: "AI Duo", health: 20, attackInterval: 30, attackSpeed: 5, image: misalignedAIImage }
+            { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: boss1Image },
+            { name: "Mainstream Media", health: 10, attackInterval: 30, attackSpeed: 2, scoreThreshold: 25000, image: boss2Image },
+            { name: "Misaligned AI", health: 20, attackInterval: 30, attackSpeed: 5, scoreThreshold: 50000, image: boss3Image },
+            { name: "Politician Duo", health: 5, attackInterval: 60, attackSpeed: 1, image: boss4Image },
+            { name: "Media Duo", health: 10, attackInterval: 30, attackSpeed: 2, image: boss5Image },
+            { name: "AI Duo", health: 20, attackInterval: 30, attackSpeed: 5, image: boss6Image }
         ];
         let currentBossIndex = 0;
         let abilities = [
-            { name: "Autistic Focus Ray", rechargeTime: 350, currentRecharge: 0 },
+            { name: "Laser Focus", rechargeTime: 350, currentRecharge: 0 },
             { name: "Matrix Immunity", rechargeTime: 200, currentRecharge: 0 },
             { name: "Diagonal Focus Ray", rechargeTime: 400, currentRecharge: 0 },
             { name: "Time Control", rechargeTime: 500, currentRecharge: 0 }
@@ -92,9 +100,9 @@
         let matrixImmunityTimer = 0;
         let timeControlActive = false;
         let timeControlTimer = 0;
-        let autisticFocusRayActive = false;
-        let autisticFocusRayTimer = 0;
-        let autisticFocusRayOpacity = 0;
+        let laserFocusActive = false;
+        let laserFocusTimer = 0;
+        let laserFocusOpacity = 0;
         let diagonalFocusRayActive = false;
         let diagonalFocusRayTimer = 0;
         let diagonalFocusRayOpacity = 0;
@@ -125,7 +133,7 @@
         let newLevelDuration = 1200;
         let gamePhase = 'initial';
         let scoreAtBossDefeat = 0;
-        let currentBossType = null; // Added to track current boss type
+        let currentBossType = null;
 
         // Start music after user interaction
         function startMusic() {
@@ -145,10 +153,10 @@
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
         // Ability activation functions
-        function activateAutisticFocusRay() {
-            autisticFocusRayActive = true;
-            autisticFocusRayTimer = 60;
-            autisticFocusRayOpacity = 1;
+        function activateLaserFocus() {
+            laserFocusActive = true;
+            laserFocusTimer = 60;
+            laserFocusOpacity = 1;
         }
 
         function activateMatrixImmunity() {
@@ -251,7 +259,7 @@
                 }
             });
 
-            if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 900) {
+            if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 450) {
                 hpPowerUp = {
                     x: 410 + Math.random() * 970,
                     y: 10 + Math.random() * 570,
@@ -285,7 +293,7 @@
             });
 
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
-                activateAutisticFocusRay();
+                activateLaserFocus();
                 abilities[0].currentRecharge = 0;
             }
             if (keys['2'] && abilities[1].currentRecharge >= abilities[1].rechargeTime) {
@@ -310,14 +318,14 @@
                 matrixImmunityTimer--;
                 if (matrixImmunityTimer <= 0) matrixImmunityActive = false;
             }
-            if (autisticFocusRayActive) {
+            if (laserFocusActive) {
                 const maxY = player.y - 300;
                 codeCharacters = codeCharacters.filter((code) =>
                     !(code.y <= player.y && code.y >= maxY && Math.abs(code.x - (player.x + 10)) <= 50)
                 );
-                autisticFocusRayTimer--;
-                autisticFocusRayOpacity = autisticFocusRayTimer / 60;
-                if (autisticFocusRayTimer <= 0) autisticFocusRayActive = false;
+                laserFocusTimer--;
+                laserFocusOpacity = laserFocusTimer / 60;
+                if (laserFocusTimer <= 0) laserFocusActive = false;
             }
             if (diagonalFocusRayActive) {
                 const maxY = player.y - 300;
@@ -428,7 +436,7 @@
 
         function spawnBoss(index) {
             const bossData = bosses[index];
-            currentBossType = bossData.name; // Set the current boss type
+            currentBossType = bossData.name;
             bossInstances.push({
                 name: bossData.name,
                 x: 700,
@@ -446,7 +454,7 @@
 
         function spawnBossPair(index) {
             const bossData = bosses[index];
-            currentBossType = bossData.name; // Set the current boss type
+            currentBossType = bossData.name;
             bossInstances.push({
                 name: bossData.name,
                 x: 600,
@@ -559,17 +567,17 @@
                 ctx.closePath();
             }
 
-            if (autisticFocusRayActive) {
+            if (laserFocusActive) {
                 const topY = Math.max(0, player.y - 300);
                 const leftX = player.x - 40;
                 const width = 100;
                 const height = player.y - topY;
 
                 ctx.save();
-                ctx.globalAlpha = autisticFocusRayOpacity;
+                ctx.globalAlpha = laserFocusOpacity;
                 const gradient = ctx.createLinearGradient(leftX + width / 2, player.y, leftX + width / 2, topY);
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 1)');
-                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 1)');
                 ctx.fillStyle = gradient;
                 ctx.fillRect(leftX, topY, width, height);
                 ctx.restore();
@@ -586,21 +594,21 @@
                 // Left diagonal ray (-45°)
                 ctx.save();
                 ctx.rotate(-Math.PI / 4);
-                const leftGradient = ctx.createLinearGradient(0, 0, -rayLength, 0);
-                leftGradient.addColorStop(0, 'rgba(255, 0, 0, 1)');
-                leftGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                const leftGradient = ctx.createLinearGradient(0, 0, 0, -rayLength);
+                leftGradient.addColorStop(0, 'rgba(255, 0, 0, 0)');  // Player position (y = 0)
+                leftGradient.addColorStop(1, 'rgba(255, 0, 0, 1)');  // Top (y = -rayLength)
                 ctx.fillStyle = leftGradient;
-                ctx.fillRect(-rayLength, -rayWidth / 2, rayLength, rayWidth);
+                ctx.fillRect(-rayWidth / 2, -rayLength, rayWidth, rayLength);
                 ctx.restore();
 
                 // Right diagonal ray (45°)
                 ctx.save();
                 ctx.rotate(Math.PI / 4);
-                const rightGradient = ctx.createLinearGradient(0, 0, rayLength, 0);
-                rightGradient.addColorStop(0, 'rgba(255, 0, 0, 1)');
-                rightGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                const rightGradient = ctx.createLinearGradient(0, 0, 0, -rayLength);
+                rightGradient.addColorStop(0, 'rgba(255, 0, 0, 0)');  // Player position (y = 0)
+                rightGradient.addColorStop(1, 'rgba(255, 0, 0, 1)');  // Top (y = -rayLength)
                 ctx.fillStyle = rightGradient;
-                ctx.fillRect(0, -rayWidth / 2, rayLength, rayWidth);
+                ctx.fillRect(-rayWidth / 2, -rayLength, rayWidth, rayLength);
                 ctx.restore();
 
                 ctx.restore();
@@ -642,7 +650,7 @@
 
             const controls = [
                 "Arrows to move",
-                "1-Autistic_Focus_Ray",
+                "1-Laser_Focus",
                 "2-Matrix_Immunity",
                 "3-Diagonal_Focus_Ray",
                 "4-Time_Control",
