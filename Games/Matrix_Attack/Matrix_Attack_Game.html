@@ -353,15 +353,24 @@
 
             if (newLevelActive) {
                 let elapsedFrames = frameCount - newLevelStartFrame;
-                if (elapsedFrames < 600) { // Less than 10 seconds
+
+                // **Adjustment 2 & 3: Control safeSpeed acceleration**
+                if (gamePhase === 'finalNewLevel') {
+                    // After boss 6, accelerate safeSpeed incrementally until player dies
+                    safeSpeed += 0.0167;
+                } else if (elapsedFrames < 600) {
+                    // During newLevelActive (after boss 3), increase safeSpeed for first 10 seconds
+                    safeSpeed += 0.0167;
+                }
+                // After 10 seconds in newLevelActive, safeSpeed stops increasing and remains constant
+
+                if (safeY > safeSize / 2) {
                     safeVy = -1;
                     safeVx = 0;
-                    safeSpeed += 0.0167;
-                } else { // After 10 seconds
+                } else {
                     safeVy = 0;
                     if (frameCount % 60 === 0) direction = (Math.random() < 0.5 ? -1 : 1);
                     safeVx = direction * safeSpeed;
-                    safeSpeed = 1 + 0.0167 * 180; // Speed after 3 seconds (180 frames)
                 }
                 safeX += safeVx;
                 safeY += safeVy;
@@ -389,7 +398,7 @@
             let spawnProbability = gamePhase === 'finalNewLevel' ? 0.3 : (newLevelActive ? 0.3 : 0.15);
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
-                    let spawnCount = (gamePhase === 'finalNewLevel' || newLevelActive) ? 2 : 1; // Doubled for newLevelActive
+                    let spawnCount = (gamePhase === 'finalNewLevel' || newLevelActive) ? 2 : 1;
                     for (let i = 0; i < spawnCount; i++) {
                         let char = Math.random() < 0.5 ? '0' : '1';
                         let color = codeColor;
@@ -411,8 +420,8 @@
 
             if (newLevelActive) {
                 let elapsedFrames = frameCount - newLevelStartFrame;
-                if (elapsedFrames >= 600) { // After 10 seconds
-                    baseCodeSpeed = boss3DefeatSpeed; // Revert to Boss 3 defeat speed
+                if (elapsedFrames >= 600) {
+                    baseCodeSpeed = boss3DefeatSpeed;
                 } else {
                     let progress = Math.min(elapsedFrames / 1800, 1);
                     baseCodeSpeed = boss3DefeatSpeed * (1 + 9 * progress);
@@ -436,7 +445,8 @@
                 }
             });
 
-            if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 450) {
+            // **Adjustment 1: Stop spawning HPboost after 10 seconds into newLevelActive**
+            if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 450 && (frameCount - newLevelStartFrame <= 600)) {
                 hpPowerUp = { x: 410 + Math.random() * 970, y: 10 + Math.random() * 570, width: 30, height: 30, spawnFrame: frameCount };
                 hpSpawnCounter = 0;
             } else if (newLevelActive) hpSpawnCounter++;
@@ -526,7 +536,6 @@
                             const vy = (dy / dist) * speed;
                             bossProjectiles.push({ x: boss.x + boss.width / 2, y: boss.y + boss.height / 2, vx: vx, vy: vy, type: 'laser' });
                         } else {
-                            // Boss 1, 2, 4, 5 shoot towards player
                             const dx = (player.x + player.width / 2) - (boss.x + boss.width / 2);
                             const dy = (player.y + player.height / 2) - (boss.y + boss.height / 2);
                             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -706,7 +715,7 @@
                 x: 410 + Math.random() * 930,
                 y: 10 + Math.random() * 580,
                 width: 50,
-                height: 50,  // Changed to square
+                height: 50,
                 type: 'Xpowerup'
             };
         }
