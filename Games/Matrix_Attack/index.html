@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Attack</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Add Supabase JavaScript client via CDN -->
+    <!-- Load Supabase JavaScript client via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -36,9 +36,11 @@
         Your browser does not support the audio element.
     </audio>
     <script>
-        // **Initialize Supabase Client**
-        const supabase = Supabase.createClient('https://brleelqpjoahwlrzlxgd.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJybGVlbHFwam9haHdscnpseGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3OTQ2NDQsImV4cCI6MjA1NjM3MDY0NH0.miYLiRNWM_VSMIdDUoKjJuJiPchDieS_qOG8f3BxQ5c');
-        // Replace 'YOUR_SUPABASE_URL' and 'YOUR_SUPABASE_ANON_KEY' with your project's URL and anon key
+        // **Initialize Supabase Client Correctly**
+        const supabaseClient = window.supabase.createClient(
+            'https://brleelqpjoahwlrzlxgd.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJybGVlbHFwam9haHdscnpseGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3OTQ2NDQsImV4cCI6MjA1NjM3MDY0NH0.miYLiRNWM_VSMIdDUoKjJuJiPchDieS_qOG8f3BxQ5c'
+        );
 
         // **Title Screen Setup** (Unchanged)
         const titleCanvas = document.getElementById('titleCanvas');
@@ -329,9 +331,9 @@
         // **New Variables for Score Submission**
         let playerName = ''; // Store the player's entered name
 
-        // **Supabase Leaderboard Functions**
+        // **Supabase Leaderboard Functions (Updated to use supabaseClient)**
         async function fetchLeaderboard() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('scores')
                 .select('name, score')
                 .order('score', { ascending: false })
@@ -345,7 +347,7 @@
 
         async function submitScore() {
             if (playerName.trim() === '') return; // Prevent empty submissions
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('scores')
                 .insert([{ name: playerName, score: score }]);
             if (error) {
@@ -907,7 +909,7 @@
                 }
             });
 
-            // **Draw Leaderboard**
+            // **Draw Leaderboard (Updated to use supabaseClient)**
             const leaderboard = await fetchLeaderboard();
             gameCtx.fillStyle = 'green';
             gameCtx.font = '20px Arial';
