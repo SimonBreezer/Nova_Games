@@ -26,11 +26,11 @@
     <canvas id="titleCanvas"></canvas>
     <canvas id="gameCanvas" width="1400" height="600"></canvas>
     <audio id="titleMusic" loop>
-        <source src="Intromusic.mp3" type="audio/mpeg">
+        <source src="assets/Intromusic.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
     <audio id="gameMusic" loop>
-        <source src="Matrix_attack_music.mp3" type="audio/mpeg">
+        <source src="assets/Matrix_attack_music.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
     <script>
@@ -60,7 +60,7 @@
         let titleAnimationRunning = true;
 
         const playImage = new Image();
-        playImage.src = 'PLAY.png';
+        playImage.src = 'assets/PLAY.png';
 
         let buttonX, buttonY, buttonWidth, buttonHeight;
         let titleMusicStarted = false;
@@ -215,23 +215,23 @@
         const gameCtx = gameCanvas.getContext('2d');
 
         const playerImage = new Image();
-        playerImage.src = 'Playerx1.png';
+        playerImage.src = 'assets/Playerx1.png';
         const boss1Image = new Image();
-        boss1Image.src = 'boss1.jpg';
+        boss1Image.src = 'assets/boss1.jpg';
         const boss2Image = new Image();
-        boss2Image.src = 'boss2.jpg';
+        boss2Image.src = 'assets/boss2.jpg';
         const boss3Image = new Image();
-        boss3Image.src = 'boss3.png';
+        boss3Image.src = 'assets/boss3.png';
         const boss4Image = new Image();
-        boss4Image.src = 'boss4.jpg';
+        boss4Image.src = 'assets/boss4.jpg';
         const boss5Image = new Image();
-        boss5Image.src = 'boss5.jpg';
+        boss5Image.src = 'assets/boss5.jpg';
         const boss6Image = new Image();
-        boss6Image.src = 'boss6.jpg';
+        boss6Image.src = 'assets/boss6.jpg';
         const xPowerUpImage = new Image();
-        xPowerUpImage.src = 'Xpowerup.png';
+        xPowerUpImage.src = 'assets/Xpowerup.png';
         const hpBoostImage = new Image();
-        hpBoostImage.src = 'HPboost.jpg';
+        hpBoostImage.src = 'assets/HPboost.jpg';
 
         const imageLoadPromises = [
             new Promise(resolve => playerImage.onload = resolve),
