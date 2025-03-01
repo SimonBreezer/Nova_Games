@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Attack</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Load Supabase JavaScript client via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -20,7 +19,7 @@
             left: 0;
         }
         #gameCanvas {
-            display: none; /* Hidden until PLAY is clicked */
+            display: none;
         }
     </style>
 </head>
@@ -36,20 +35,17 @@
         Your browser does not support the audio element.
     </audio>
     <script>
-        // **Initialize Supabase Client Correctly**
         const supabaseClient = window.supabase.createClient(
             'https://brleelqpjoahwlrzlxgd.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJybGVlbHFwam9haHdscnpseGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3OTQ2NDQsImV4cCI6MjA1NjM3MDY0NH0.miYLiRNWM_VSMIdDUoKjJuJiPchDieS_qOG8f3BxQ5c'
         );
 
-        // **Title Screen Setup** (Unchanged)
+        // Title Screen Setup (unchanged)
         const titleCanvas = document.getElementById('titleCanvas');
         const titleCtx = titleCanvas.getContext('2d');
         const titleMusic = document.getElementById('titleMusic');
-
         const characters = '01';
         const getRandomChar = () => characters[Math.floor(Math.random() * characters.length)];
-
         const Z_MAX = 500;
         const Z_MIN = 10;
         const BASE_V_Z = 200;
@@ -59,17 +55,14 @@
         const OFFSET = 200;
         const N_STREAMS_PER_EDGE = 40;
         const SPAWN_PER_STREAM = 1;
-
         let W, H, focalLength, centerX, centerY;
         let rectWidth, rectHeight, rectX, rectY;
         let chars = [];
         let streams = [];
         let lastTime = performance.now() / 1000;
         let titleAnimationRunning = true;
-
         const playImage = new Image();
         playImage.src = 'assets/PLAY.png';
-
         let buttonX, buttonY, buttonWidth, buttonHeight;
         let titleMusicStarted = false;
         let showClickText = true;
@@ -101,7 +94,6 @@
             rectHeight = H * 0.48;
             rectX = (W - rectWidth) / 2;
             rectY = (H - rectHeight) / 2;
-
             const creditY = rectY + rectHeight / 2 + 20;
             const originalHeight = rectHeight / 6;
             const desiredHeight = originalHeight * 10;
@@ -110,7 +102,6 @@
             buttonWidth = buttonHeight * imageAspectRatio;
             buttonX = centerX - buttonWidth / 2;
             buttonY = creditY + 5;
-
             initializeStreams();
         }
         resizeCanvas();
@@ -132,14 +123,11 @@
 
         function animateTitle() {
             if (!titleAnimationRunning) return;
-
             const currentTime = performance.now() / 1000;
             const dt = Math.min(currentTime - lastTime, 0.1);
             lastTime = currentTime;
-
             titleCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             titleCtx.fillRect(0, 0, W, H);
-
             streams.forEach(stream => {
                 stream.spawnAccum += SPAWN_PER_STREAM * dt;
                 const toSpawn = Math.floor(stream.spawnAccum);
@@ -158,7 +146,6 @@
                     }
                 }
             });
-
             chars = chars.filter(char => {
                 char.z += char.vz * dt;
                 char.rotation += char.angularVelocity * dt;
@@ -168,7 +155,6 @@
                 const yScreen = (focalLength * char.y) / (char.z + OFFSET) + centerY;
                 return xScreen >= -100 && xScreen <= W + 100 && yScreen >= -100 && yScreen <= H + 100;
             });
-
             chars.forEach(char => {
                 const scale = focalLength / (char.z + OFFSET);
                 const xScreen = (focalLength * char.x) / (char.z + OFFSET) + centerX;
@@ -186,13 +172,11 @@
                 titleCtx.fillText(char.symbol, 0, 0);
                 titleCtx.restore();
             });
-
             titleCtx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
             titleCtx.lineWidth = 2;
             titleCtx.shadowBlur = 15;
             titleCtx.shadowColor = 'lime';
             titleCtx.strokeRect(rectX, rectY, rectWidth, rectHeight);
-
             titleCtx.fillStyle = 'lime';
             titleCtx.textAlign = 'center';
             const titleFontSize = rectHeight / 6;
@@ -204,24 +188,20 @@
             titleCtx.font = `${creditFontSize}px 'IBM Plex Mono'`;
             const creditY = rectY + rectHeight / 2 + 20;
             titleCtx.fillText('a game by @Simon_Breezer', centerX, creditY);
-
             if (showClickText) {
                 const clickTextY = buttonY + buttonHeight / 2;
                 titleCtx.fillText('>click anywhere', centerX, clickTextY);
             } else if (showPlayButton && playImage.complete) {
                 titleCtx.drawImage(playImage, buttonX, buttonY, buttonWidth, buttonHeight);
             }
-
             titleCtx.shadowBlur = 0;
             requestAnimationFrame(animateTitle);
         }
-
         animateTitle();
 
-        // **Game Setup**
+        // Game Setup
         const gameCanvas = document.getElementById('gameCanvas');
         const gameCtx = gameCanvas.getContext('2d');
-
         const playerImage = new Image();
         playerImage.src = 'assets/Playerx1.png';
         const boss1Image = new Image();
@@ -240,7 +220,6 @@
         xPowerUpImage.src = 'assets/Xpowerup.png';
         const hpBoostImage = new Image();
         hpBoostImage.src = 'assets/HPboost.jpg';
-
         const imageLoadPromises = [
             new Promise(resolve => playerImage.onload = resolve),
             new Promise(resolve => boss1Image.onload = resolve),
@@ -252,7 +231,6 @@
             new Promise(resolve => xPowerUpImage.onload = resolve),
             new Promise(resolve => hpBoostImage.onload = resolve)
         ];
-
         let score = 0;
         let lives = 50;
         let player = { x: 490, y: 570, width: 20, height: 20, speed: 5 };
@@ -262,11 +240,11 @@
             columns.push(400 + i * 20 + 10);
         }
         const colorPalette = [
-            { r: 255, g: 0, b: 0 },    // Red
-            { r: 0, g: 0, b: 255 },    // Blue
-            { r: 0, g: 255, b: 0 },    // Green
-            { r: 255, g: 255, b: 0 },  // Yellow
-            { r: 128, g: 0, b: 128 }   // Purple
+            { r: 255, g: 0, b: 0 },
+            { r: 0, g: 0, b: 255 },
+            { r: 0, g: 255, b: 0 },
+            { r: 255, g: 255, b: 0 },
+            { r: 128, g: 0, b: 128 }
         ];
         const bosses = [
             { name: "Politician", health: 5, attackInterval: 60, attackSpeed: 1, scoreThreshold: 10000, image: boss1Image },
@@ -327,11 +305,9 @@
         let currentBossType = null;
         let bossFightStartTime = 0;
         let initialBossSpeed = 0;
+        let playerName = '';
+        let isSubmissionPhase = false;
 
-        // **New Variables for Score Submission**
-        let playerName = ''; // Store the player's entered name
-
-        // **Supabase Leaderboard Functions (Updated to use supabaseClient)**
         async function fetchLeaderboard() {
             const { data, error } = await supabaseClient
                 .from('scores')
@@ -346,7 +322,7 @@
         }
 
         async function submitScore() {
-            if (playerName.trim() === '') return; // Prevent empty submissions
+            if (playerName.trim() === '') return;
             const { error } = await supabaseClient
                 .from('scores')
                 .insert([{ name: playerName, score: score }]);
@@ -354,8 +330,8 @@
                 console.error('Error submitting score:', error);
             } else {
                 console.log(`Score submitted: ${playerName} - ${score}`);
-                playerName = ''; // Reset input after submission
-                lives = -1; // Move past submission state to prevent re-display
+                playerName = '';
+                lives = -1;
             }
         }
 
@@ -387,28 +363,20 @@
 
         function update() {
             if (lives <= 0) {
-                // **Handle Name Input When Player Dies**
-                window.addEventListener('keydown', (e) => {
-                    if (lives === 0) { // Only active during submission phase
-                        if (e.key.length === 1 && playerName.length < 20) playerName += e.key; // Limit name length
-                        if (e.key === 'Backspace') playerName = playerName.slice(0, -1);
-                        if (e.key === 'Enter') submitScore();
-                    }
-                }, { once: false });
+                if (!isSubmissionPhase) {
+                    isSubmissionPhase = true;
+                    window.addEventListener('keydown', handleNameInput);
+                }
                 return;
             }
-
             frameCount++;
-
             if (newLevelActive) {
                 let elapsedFrames = frameCount - newLevelStartFrame;
-
                 if (gamePhase === 'finalNewLevel') {
                     safeSpeed += 0.0167;
                 } else if (elapsedFrames < 600) {
                     safeSpeed += 0.0167;
                 }
-
                 if (safeY > safeSize / 2) {
                     safeVy = -1;
                     safeVx = 0;
@@ -419,27 +387,23 @@
                 }
                 safeX += safeVx;
                 safeY += safeVy;
-
                 const minX = 400 + safeSize / 2;
                 const maxX = 1400 - safeSize / 2;
                 if (safeX < minX) { safeX = minX; direction = 1; }
                 else if (safeX > maxX) { safeX = maxX; direction = -1; }
                 if (safeY < safeSize / 2) safeY = safeSize / 2;
-
                 codeCharacters = codeCharacters.filter(code => {
                     const dx = code.x - safeX;
                     const dy = code.y - safeY;
                     return (dx < -safeSize / 2 || dx > safeSize / 2 || dy < -safeSize / 2 || dy > safeSize / 2);
                 });
             }
-
             if (keys['ArrowLeft']) player.x -= player.speed;
             if (keys['ArrowRight']) player.x += player.speed;
             if (keys['ArrowUp']) player.y -= player.speed;
             if (keys['ArrowDown']) player.y += player.speed;
             player.x = Math.max(400, Math.min(1380, player.x));
             player.y = Math.max(0, Math.min(580, player.y));
-
             let spawnProbability = gamePhase === 'finalNewLevel' ? 0.3 : (newLevelActive ? 0.3 : 0.15);
             columns.forEach((colX) => {
                 if (Math.random() < spawnProbability) {
@@ -457,12 +421,10 @@
                     }
                 }
             });
-
             if (bossInstances.length > 0 && currentBossIndex <= 2) {
                 let elapsedSeconds = (performance.now() / 1000) - bossFightStartTime;
                 baseCodeSpeed = initialBossSpeed + 0.005 * Math.floor(elapsedSeconds);
             }
-
             if (newLevelActive) {
                 let elapsedFrames = frameCount - newLevelStartFrame;
                 if (elapsedFrames >= 600) {
@@ -472,7 +434,6 @@
                     baseCodeSpeed = boss3DefeatSpeed * (1 + 9 * progress);
                 }
             }
-
             let codeSpeed = timeControlActive ? baseCodeSpeed * 0.5 : baseCodeSpeed;
             codeCharacters.forEach((code, index) => {
                 code.y += codeSpeed;
@@ -489,12 +450,10 @@
                     codeCharacters.splice(index, 1);
                 }
             });
-
             if (newLevelActive && hpPowerUp === null && hpSpawnCounter >= 450 && (frameCount - newLevelStartFrame <= 600)) {
                 hpPowerUp = { x: 410 + Math.random() * 970, y: 10 + Math.random() * 570, width: 30, height: 30, spawnFrame: frameCount };
                 hpSpawnCounter = 0;
             } else if (newLevelActive) hpSpawnCounter++;
-
             if (hpPowerUp !== null) {
                 let timeSinceSpawn = frameCount - hpPowerUp.spawnFrame;
                 if (timeSinceSpawn > 360) hpPowerUp = null;
@@ -507,11 +466,9 @@
                     hpPowerUp = null;
                 }
             }
-
             abilities.forEach((ability) => {
                 if (ability.currentRecharge < ability.rechargeTime) ability.currentRecharge++;
             });
-
             if (keys['1'] && abilities[0].currentRecharge >= abilities[0].rechargeTime) {
                 activateLaserFocus();
                 abilities[0].currentRecharge = 0;
@@ -528,7 +485,6 @@
                 activateTimeControl();
                 abilities[3].currentRecharge = 0;
             }
-
             if (matrixImmunityActive) {
                 codeCharacters = codeCharacters.filter((code) => {
                     let dx = code.x - (player.x + 10);
@@ -564,12 +520,10 @@
                 timeControlTimer--;
                 if (timeControlTimer <= 0) timeControlActive = false;
             }
-
             if (bossInstances.length > 0) {
                 bossInstances.forEach(boss => {
                     boss.x += boss.vx;
                     if (boss.x <= 400 || boss.x >= 1300) boss.vx = -boss.vx;
-
                     if (frameCount % boss.attackInterval === 0) {
                         if (boss.name === "Misaligned AI" || boss.name === "AI Duo") {
                             const dx = (player.x + player.width / 2) - (boss.x + boss.width / 2);
@@ -590,7 +544,6 @@
                         }
                     }
                 });
-
                 bossProjectiles.forEach((proj, index) => {
                     proj.x += proj.vx;
                     proj.y += proj.vy;
@@ -603,7 +556,6 @@
                         bossProjectiles.splice(index, 1);
                     }
                 });
-
                 if (powerUp !== null && player.x < powerUp.x + powerUp.width &&
                     player.x + player.width > powerUp.x &&
                     player.y < powerUp.y + powerUp.height &&
@@ -612,12 +564,10 @@
                     shootText = 'X';
                     powerUp = null;
                 }
-
                 if (canShoot && keys[' '] && frameCount - lastShotFrame >= 10) {
                     lastShotFrame = frameCount;
                     projectiles.push({ x: player.x + 10, y: player.y, text: shootText, clearsCode: false });
                 }
-
                 projectiles.forEach((proj, index) => {
                     proj.y -= 4;
                     if (proj.y < 0 || proj.x < 400 || proj.x > 1400) {
@@ -639,7 +589,6 @@
             } else {
                 projectiles = [];
             }
-
             if (gamePhase === 'initial' && currentBossIndex < 3 && score >= bosses[currentBossIndex].scoreThreshold && bossInstances.length === 0) {
                 spawnBoss(currentBossIndex);
             } else if (gamePhase === 'newLevel' && frameCount - newLevelStartFrame >= newLevelDuration) {
@@ -677,9 +626,9 @@
         }
 
         function spawnBossPair(index) {
-            if (index === 3) codeColor = '#0f0';  // Boss 4 like Boss 1
-            else if (index === 4) codeColor = 'blue';  // Boss 5 like Boss 2
-            else if (index === 5) codeColor = 'red';  // Boss 6 like Boss 3
+            if (index === 3) codeColor = '#0f0';
+            else if (index === 4) codeColor = 'blue';
+            else if (index === 5) codeColor = 'red';
             const bossData = bosses[index];
             currentBossType = bossData.name;
             bossInstances.push({
@@ -766,18 +715,14 @@
 
         async function drawGame() {
             gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-
             gameCtx.strokeStyle = 'green';
             gameCtx.lineWidth = 2;
             gameCtx.strokeRect(400, 0, 1000, 600);
-
             gameCtx.drawImage(playerImage, player.x, player.y, player.width, player.height);
-
             if (newLevelActive) {
                 gameCtx.fillStyle = 'rgba(255, 255, 255, 0)';
                 gameCtx.fillRect(safeX - safeSize / 2, safeY - safeSize / 2, safeSize, safeSize);
             }
-
             if (matrixImmunityActive) {
                 gameCtx.beginPath();
                 gameCtx.arc(player.x + player.width / 2, player.y + player.height / 2, 75, 0, 2 * Math.PI);
@@ -786,7 +731,6 @@
                 gameCtx.stroke();
                 gameCtx.closePath();
             }
-
             if (laserFocusActive) {
                 const topY = Math.max(0, laserFocusActivationY - 300);
                 const leftX = laserFocusActivationX - 50;
@@ -801,14 +745,12 @@
                 gameCtx.fillRect(leftX, topY, width, height);
                 gameCtx.restore();
             }
-
             if (diagonalFocusRayActive) {
                 const rayLength = 300;
                 const rayWidth = 100;
                 gameCtx.save();
                 gameCtx.globalAlpha = diagonalFocusRayOpacity;
                 gameCtx.translate(diagonalFocusRayActivationX, diagonalFocusRayActivationY);
-
                 gameCtx.save();
                 gameCtx.rotate(-Math.PI / 4);
                 const leftGradient = gameCtx.createLinearGradient(0, 0, 0, -rayLength);
@@ -817,7 +759,6 @@
                 gameCtx.fillStyle = leftGradient;
                 gameCtx.fillRect(-rayWidth / 2, -rayLength, rayWidth, rayLength);
                 gameCtx.restore();
-
                 gameCtx.save();
                 gameCtx.rotate(Math.PI / 4);
                 const rightGradient = gameCtx.createLinearGradient(0, 0, 0, -rayLength);
@@ -826,16 +767,13 @@
                 gameCtx.fillStyle = rightGradient;
                 gameCtx.fillRect(-rayWidth / 2, -rayLength, rayWidth, rayLength);
                 gameCtx.restore();
-
                 gameCtx.restore();
             }
-
             gameCtx.font = '12px Courier';
             codeCharacters.forEach((code) => {
                 gameCtx.fillStyle = code.color;
                 gameCtx.fillText(code.char, code.x - 5, code.y);
             });
-
             if (hpPowerUp !== null) {
                 let timeSinceSpawn = frameCount - hpPowerUp.spawnFrame;
                 let opacity = timeSinceSpawn <= 300 ? 1 : (timeSinceSpawn <= 360 ? 1 - (timeSinceSpawn - 300) / 60 : 0);
@@ -846,13 +784,11 @@
                     gameCtx.restore();
                 }
             }
-
             gameCtx.fillStyle = 'green';
             gameCtx.font = '20px Arial';
             gameCtx.textAlign = 'left';
             gameCtx.fillText(`Score: ${score}`, 10, 30);
             gameCtx.fillText(`HP: ${lives}`, 10, 60);
-
             let barY = 100;
             abilities.forEach((ability) => {
                 let rechargePercent = ability.currentRecharge / ability.rechargeTime;
@@ -863,7 +799,6 @@
                 gameCtx.fillText(ability.name, 200, barY + 8);
                 barY += 20;
             });
-
             const controls = [
                 "Arrows to move",
                 "1-Laser_Focus",
@@ -877,21 +812,17 @@
             controls.forEach((text, index) => {
                 gameCtx.fillText(text, 10, barY + 20 + index * 20);
             });
-
             bossInstances.forEach(boss => {
                 gameCtx.drawImage(boss.image, boss.x, boss.y, boss.width, boss.height);
             });
-
             if (powerUp !== null) {
                 gameCtx.drawImage(xPowerUpImage, powerUp.x, powerUp.y, powerUp.width, powerUp.height);
             }
-
             gameCtx.fillStyle = 'white';
             gameCtx.font = '16px Arial';
             projectiles.forEach((proj) => {
                 gameCtx.fillText(proj.text, proj.x - 10, proj.y);
             });
-
             bossProjectiles.forEach((proj) => {
                 if (proj.type === 'laser') {
                     gameCtx.strokeStyle = 'white';
@@ -908,45 +839,41 @@
                     gameCtx.fill();
                 }
             });
-
-            // **Draw Leaderboard (Updated to use supabaseClient)**
-            const leaderboard = await fetchLeaderboard();
+            let leaderboard = [];
+            try {
+                leaderboard = await fetchLeaderboard();
+            } catch (err) {
+                console.error('Failed to fetch leaderboard:', err);
+            }
             gameCtx.fillStyle = 'green';
             gameCtx.font = '20px Arial';
             gameCtx.textAlign = 'left';
-            gameCtx.fillText('Leaderboard', 1420, 30); // Positioned right of gameplay area (x=1400)
+            gameCtx.fillText('Leaderboard', 1420, 30);
             leaderboard.forEach((entry, index) => {
                 gameCtx.fillText(`${index + 1}. ${entry.name}: ${entry.score}`, 1420, 60 + index * 30);
             });
-
-            // **Draw Score Submission Interface When Player Dies**
             if (lives <= 0) {
-                if (lives === 0) { // Show submission box only once
+                if (lives === 0) {
                     gameCtx.fillStyle = 'black';
-                    gameCtx.fillRect(600, 200, 600, 200); // Centered box (1400x600 canvas)
+                    gameCtx.fillRect(600, 200, 600, 200);
                     gameCtx.strokeStyle = 'lime';
                     gameCtx.lineWidth = 2;
                     gameCtx.shadowBlur = 15;
                     gameCtx.shadowColor = 'lime';
                     gameCtx.strokeRect(600, 200, 600, 200);
-
                     gameCtx.fillStyle = 'lime';
                     gameCtx.font = '20px Arial';
                     gameCtx.textAlign = 'center';
                     gameCtx.fillText('>enter your name to submit your score', 900, 250);
-
-                    // Draw text input area
                     gameCtx.fillStyle = 'white';
                     gameCtx.fillRect(700, 280, 300, 30);
                     gameCtx.fillStyle = 'black';
                     gameCtx.fillText(playerName || '', 850, 300);
-
-                    // Draw submit button
                     gameCtx.fillStyle = 'lime';
                     gameCtx.fillRect(1020, 280, 150, 30);
                     gameCtx.fillStyle = 'white';
                     gameCtx.fillText('SUBMIT SCORE', 1095, 300);
-                } else { // After submission, show game over
+                } else {
                     gameCtx.fillStyle = 'red';
                     gameCtx.font = '40px Arial';
                     gameCtx.textAlign = 'center';
@@ -964,9 +891,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // **Handle Click on Submit Button**
         gameCanvas.addEventListener('click', (event) => {
-            if (lives === 0) { // Only active during submission phase
+            if (lives === 0) {
                 const rect = gameCanvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -978,7 +904,6 @@
 
         titleCanvas.addEventListener('click', (event) => {
             if (!showPlayButton) return;
-
             const rect = titleCanvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
@@ -996,6 +921,17 @@
                 });
             }
         });
+
+        function handleNameInput(e) {
+            if (lives === 0) {
+                if (e.key.length === 1 && playerName.length < 20) playerName += e.key;
+                if (e.key === 'Backspace') playerName = playerName.slice(0, -1);
+                if (e.key === 'Enter') {
+                    submitScore();
+                    window.removeEventListener('keydown', handleNameInput);
+                }
+            }
+        }
     </script>
 </body>
 </html>
